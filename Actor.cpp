@@ -5,7 +5,9 @@
 #include "GraphObject.h"
 #include "StudentWorld.h"
 
+#ifndef _PI
 #define _PI 3.14159265358979323846
+#endif
 
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
 

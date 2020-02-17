@@ -18,6 +18,7 @@ class StudentWorld : public GameWorld
     private:
         std::vector<Actor*> m_actors;
         Socrates* m_socrates;
+        int m_level;
 };
 
 #endif // STUDENTWORLD_H_
