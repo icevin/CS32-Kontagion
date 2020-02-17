@@ -1,5 +1,6 @@
 #include "StudentWorld.h"
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <queue>
@@ -42,14 +43,28 @@ int StudentWorld::init()
 
 int StudentWorld::move()
 {
-    queue<Actor*> deadActors;
+    queue<Actor*> dead_actors;
     
-    for(Actor* a : m_actors) {
-        if(a->isAlive())
-            a->doSomething();
-        else
-            deadActors.push(a);
+    for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
+        Actor* a = (*i);
+        if(a != nullptr) {
+            if(a->isAlive()) 
+                a->doSomething();
+            else {
+                dead_actors.push(a);
+                (*i) = nullptr;
+            }
+        }
     }
+
+    m_actors.erase(remove(begin(m_actors), end(m_actors), nullptr), end(m_actors));
+
+    while(!dead_actors.empty()) {
+        if(dead_actors.front() != nullptr)
+            delete dead_actors.front();
+        dead_actors.pop();
+    }
+
     return GWSTATUS_CONTINUE_GAME;
 }
 

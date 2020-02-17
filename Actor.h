@@ -7,7 +7,7 @@ class StudentWorld;
 
 class Actor : public GraphObject {
     public:
-        Actor(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0);
+        Actor(int imageID, double startX, double startY, Direction dir = 0, int depth = 0, double size = 1.0, bool alive = true);
         virtual ~Actor();
         virtual void doSomething();
         virtual bool isAlive() {
@@ -33,6 +33,7 @@ class Dirt : public Actor {
     public:
         Dirt(double startX, double startY);
         ~Dirt();
+        void doSomething();
     private:
 };
 

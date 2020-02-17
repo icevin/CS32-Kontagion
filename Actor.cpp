@@ -11,10 +11,10 @@
 
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
 
-Actor::Actor(int imageID, double startX, double startY, Direction dir, int depth, double size)
+Actor::Actor(int imageID, double startX, double startY, Direction dir, int depth, double size, bool isAlive)
 : GraphObject(imageID, startX, startY, dir, depth, size)
 {
-    m_living = true;
+    m_living = isAlive;
 }
 
 Actor::~Actor() {
@@ -26,7 +26,7 @@ void Actor::doSomething() {
 }
 
 Socrates::Socrates(double startX, double startY, StudentWorld* world) 
-: Actor(IID_PLAYER, startX, startY, 0, 0, 1.0), m_sprayCharges(0), m_flameCharges(0)
+: Actor(IID_PLAYER, startX, startY, 0, 0, 1.0, true), m_sprayCharges(0), m_flameCharges(0)
 {
     m_studentWorld = world;
 }
@@ -66,11 +66,15 @@ void Socrates::moveAlongCircle(int theta) {
 }
 
 Dirt::Dirt(double startX, double startY) 
-: Actor(IID_DIRT, startX, startY, 0, 1, 1)
+: Actor(IID_DIRT, startX, startY, 0, 1, 1, true)
 {
 
 }
 
 Dirt::~Dirt() {
+
+}
+
+void Dirt::doSomething() {
 
 }
