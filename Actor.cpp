@@ -1,6 +1,7 @@
 #include "Actor.h"
 
 #include <vector>
+#include <queue>
 #include <typeinfo>
 #include <iostream>
 
@@ -14,6 +15,8 @@
 #ifndef _RAD_CONST
 #define _RAD_CONST 1.0 / 360 * 2 * _PI
 #endif
+
+using namespace std;
 
 
 //       db       .g8"""bgd MMP""MM""YMM   .g8""8q. `7MM"""Mq.  
@@ -178,19 +181,23 @@ Projectile::~Projectile() {
 void Projectile::doSomething() {
     if(!isAlive())
         return;
-    Actor* p_overlap = getStudentWorld()->checkOverlap(getX(), getY(), SPRITE_RADIUS*2, this);
-    if(p_overlap != nullptr && p_overlap->isProjDamageable()) {
-        std::cerr << "hit" << p_overlap  << "|" << typeid(p_overlap).name() << std::endl;
-        p_overlap->setAliveStatus(false);
-        setAliveStatus(false);
-        return;
+    queue<Actor*> p_overlaps = getStudentWorld()->checkOverlap(getX(), getY(), SPRITE_RADIUS*2, this);
+    while(!p_overlaps.empty()) {
+        if(p_overlaps.front() != nullptr && p_overlaps.front()->isProjDamageable()) {
+            cerr << "hit" << p_overlaps.front()  << "|" << typeid(p_overlaps.front()).name() << endl;
+            p_overlaps.front()->setAliveStatus(false);
+            setAliveStatus(false);
+            return;
+        } else {
+            p_overlaps.pop();
+        }
     }
     moveForward(SPRITE_RADIUS*2);
     m_lifeTime -= SPRITE_RADIUS*2;
     if(m_lifeTime < 0) {
         Actor::setAliveStatus(false);
-        // std::cerr << "p overlap:" << getStudentWorld()->checkOverlap(120, 128, 8, nullptr) << std::endl;
-        // std::cerr << getX() << "|" << getY() << "|" << m_lifeTime << std::endl;
+        // cerr << "p overlap:" << getStudentWorld()->checkOverlap(120, 128, 8, nullptr) << endl;
+        // cerr << getX() << "|" << getY() << "|" << m_lifeTime << endl;
         return;
     }
 }

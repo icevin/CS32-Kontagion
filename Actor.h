@@ -13,7 +13,7 @@ class Actor : public GraphObject {
 
         // All actors can "die"
         virtual bool isAlive() {return m_living;}
-        void setAliveStatus(bool life);          // Nicer name than void kill()
+        virtual void setAliveStatus(bool life);          // Nicer name than void kill()
 
         // All actors can collide, but in different ways
         void onCollision(Actor* other);                   // Apply effects to Actor
@@ -31,12 +31,14 @@ class Actor : public GraphObject {
 
 
 
-
 class Socrates : public Actor {
     public:
         Socrates(StudentWorld* world);
         ~Socrates();
         bool isAlive();
+        void setAliveStatus(bool life) {
+            m_health = life ? m_health : 0;
+        };
         void doSomething();
         void onCollision(Actor* other);                   // Apply effects to Actor
         bool isProjDamageable() {return false;};
@@ -46,7 +48,6 @@ class Socrates : public Actor {
         int m_flameCharges;
         int m_health;
 };
-
 
 
 
@@ -63,7 +64,9 @@ class Dirt : public Actor {
 
 
 
+
 /*              PROJECTILES             */
+
 
 
 
@@ -92,4 +95,21 @@ class Spray : public Projectile {
 
 
 
+
+/*              PROPS               */
+
+
+
+
+class Prop : public Actor {
+    public:
+        Prop(int imageID, double startX, double startY, StudentWorld* world, Direction dir);
+        ~Prop();
+        virtual void doSomething();
+        
+        // Some props die in differnt ways than others
+        virtual bool isAlive();
+        bool isProjDamageable() {return false;}
+    private:
+};
 #endif // ACTOR_H_

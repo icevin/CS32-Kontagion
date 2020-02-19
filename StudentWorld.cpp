@@ -99,7 +99,8 @@ void StudentWorld::addActor(Actor* a) {
     m_actors.push_back(a);
 }
 
-Actor* StudentWorld::checkOverlap(double x, double y, double radius, Actor* orig) {
+queue<Actor*> StudentWorld::checkOverlap(double x, double y, double radius, Actor* orig) {
+    queue<Actor*> overlaps;
     for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
         Actor* a = (*i);
         if( a != nullptr && 
@@ -113,7 +114,7 @@ Actor* StudentWorld::checkOverlap(double x, double y, double radius, Actor* orig
                 )
             ) <= radius && 
             a != orig)
-            return a;
+            overlaps.push(a);
     }
-    return nullptr;
+    return overlaps;
 }

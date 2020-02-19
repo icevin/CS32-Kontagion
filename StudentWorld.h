@@ -5,6 +5,7 @@
 #include "GameWorld.h"
 
 #include <string>
+#include <queue>
 #include <vector>
 
 class StudentWorld : public GameWorld
@@ -16,7 +17,7 @@ class StudentWorld : public GameWorld
         virtual int move();
         virtual void cleanUp();
         void addActor(Actor* a);
-        Actor* checkOverlap(double x, double y, double radius, Actor* orig);
+        std::queue<Actor*> checkOverlap(double x, double y, double radius, Actor* orig);
     private:
         std::vector<Actor*> m_actors;
         Socrates* m_socrates;
