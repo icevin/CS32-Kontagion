@@ -16,9 +16,10 @@ class Actor : public GraphObject {
         void setAliveStatus(bool life);          // Nicer name than void kill()
 
         // All actors can collide, but in different ways
-        virtual Actor* checkCollision(double x, double y);        // Check Collision at some X, Y
-        virtual void onCollision(Actor* other);                   // Apply effects to Actor
-        int distanceTo(Actor* other);       // Helper function
+        void onCollision(Actor* other);                   // Apply effects to Actor
+
+        // Some actors are damageable by projectiles
+        virtual bool isProjDamageable() = 0;
 
         // Actors need a StudentWorld pointer to interact with other actors
         StudentWorld* getStudentWorld() {return m_studentWorld;}
@@ -27,14 +28,18 @@ class Actor : public GraphObject {
         StudentWorld* m_studentWorld;
 };
 
+
+
+
+
 class Socrates : public Actor {
     public:
         Socrates(StudentWorld* world);
         ~Socrates();
         bool isAlive();
         void doSomething();
-        Actor* checkCollision(double x, double y);        // Check Collision at some X, Y
         void onCollision(Actor* other);                   // Apply effects to Actor
+        bool isProjDamageable() {return false;};
     private:
         void moveAlongCircle(int theta);
         int m_sprayCharges;
@@ -42,23 +47,33 @@ class Socrates : public Actor {
         int m_health;
 };
 
+
+
+
+
 class Dirt : public Actor {
     public:
         Dirt(double startX, double startY, StudentWorld* world);
         ~Dirt();
         void doSomething();
-        Actor* checkCollision(double x, double y);        // Check Collision at some X, Y
         void onCollision(Actor* other);                   // Apply effects to Actor
+        bool isProjDamageable() {return true;};
     private:
 };
+
+
+
+/*              PROJECTILES             */
+
+
 
 class Projectile : public Actor {
     public:
         Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int lifeTime);
         ~Projectile();
         void doSomething();
-        Actor* checkCollision(double x, double y);        // Check Collision at some X, Y
         void onCollision(Actor* other);                   // Apply effects to Actor
+        bool isProjDamageable(){return false;};
     private:
         int m_lifeTime;
 };
@@ -74,5 +89,7 @@ class Spray : public Projectile {
         Spray(double startX, double startY, StudentWorld* world, Direction dir);
         ~Spray();
 };
+
+
 
 #endif // ACTOR_H_

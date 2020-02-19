@@ -16,7 +16,7 @@ class StudentWorld : public GameWorld
         virtual int move();
         virtual void cleanUp();
         void addActor(Actor* a);
-        
+        Actor* checkOverlap(double x, double y, double radius, Actor* orig);
     private:
         std::vector<Actor*> m_actors;
         Socrates* m_socrates;

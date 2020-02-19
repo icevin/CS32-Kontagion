@@ -1,6 +1,8 @@
 #include "Actor.h"
 
 #include <vector>
+#include <typeinfo>
+#include <iostream>
 
 #include "GraphObject.h"
 #include "StudentWorld.h"
@@ -38,16 +40,6 @@ void Actor::doSomething() {
 
 void Actor::setAliveStatus(bool life) {
     m_living = life;
-}
-
-int Actor::distanceTo(Actor* other) {
-    return sqrt(
-        pow((getX() - other->getX()), 2) + pow((getY() - other->getY()), 2)
-    );
-}
-
-Actor* Actor::checkCollision(double x, double y) {
-
 }
 
 void Actor::onCollision(Actor* other) {
@@ -98,8 +90,8 @@ void Socrates::doSomething() {
                     m_sprayCharges--;
                     getStudentWorld()->addActor(
                         new Spray(
-                            getX() + 2 * SPRITE_RADIUS * cos(getDirection() * _RAD_CONST),
-                            getY() + 2 * SPRITE_RADIUS * sin(getDirection() * _RAD_CONST),
+                            getX() + SPRITE_WIDTH * cos(getDirection() * _RAD_CONST),
+                            getY() + SPRITE_WIDTH * sin(getDirection() * _RAD_CONST),
                             getStudentWorld(),
                             getDirection()
                         )
@@ -115,8 +107,8 @@ void Socrates::doSomething() {
                     {
                         getStudentWorld()->addActor(
                             new Flame(
-                                getX() + 2 * SPRITE_RADIUS * cos((tempDir + (22.0 * i)) * _RAD_CONST), 
-                                getY() + 2 * SPRITE_RADIUS * sin((tempDir + (22.0 * i)) * _RAD_CONST), 
+                                getX() + SPRITE_WIDTH * cos((tempDir + (22.0 * i)) * _RAD_CONST), 
+                                getY() + SPRITE_WIDTH * sin((tempDir + (22.0 * i)) * _RAD_CONST), 
                                 getStudentWorld(), 
                                 tempDir + (22.0 * i)
                             )
@@ -129,14 +121,6 @@ void Socrates::doSomething() {
         }
     } else if (m_sprayCharges < 20)
         m_sprayCharges++;
-}
-
-Actor* Socrates::checkCollision(double x, double y) {
-
-}
-
-void Socrates::onCollision(Actor* other) {
-
 }
 
 void Socrates::moveAlongCircle(int theta) {
@@ -170,10 +154,6 @@ void Dirt::doSomething() {
 
 }
 
-Actor* Dirt::checkCollision(double x, double y) {
-
-}
-
 void Dirt::onCollision(Actor* other) {
 
 }
@@ -196,16 +176,23 @@ Projectile::~Projectile() {
 }
 
 void Projectile::doSomething() {
-    if(m_lifeTime <= 0) {
-        Actor::setAliveStatus(false);
+    if(!isAlive())
+        return;
+    Actor* p_overlap = getStudentWorld()->checkOverlap(getX(), getY(), SPRITE_RADIUS*2, this);
+    if(p_overlap != nullptr && p_overlap->isProjDamageable()) {
+        std::cerr << "hit" << p_overlap  << "|" << typeid(p_overlap).name() << std::endl;
+        p_overlap->setAliveStatus(false);
+        setAliveStatus(false);
         return;
     }
     moveForward(SPRITE_RADIUS*2);
     m_lifeTime -= SPRITE_RADIUS*2;
-}
-
-Actor* Projectile::checkCollision(double x, double y) {
-
+    if(m_lifeTime < 0) {
+        Actor::setAliveStatus(false);
+        // std::cerr << "p overlap:" << getStudentWorld()->checkOverlap(120, 128, 8, nullptr) << std::endl;
+        // std::cerr << getX() << "|" << getY() << "|" << m_lifeTime << std::endl;
+        return;
+    }
 }
 
 void  Projectile::onCollision(Actor* other) {
@@ -247,3 +234,4 @@ Spray::Spray(double startX, double startY, StudentWorld* world, Direction dir)
 Spray::~Spray() {
 
 }
+
