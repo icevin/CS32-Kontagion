@@ -17,9 +17,11 @@ GameWorld* createStudentWorld(string assetPath)
 }
 
 StudentWorld::StudentWorld(string assetPath)
-: GameWorld(assetPath), m_level(0)
+: GameWorld(assetPath), m_level(0), m_nBaddies(0)
 {
-
+    cerr << "studentworld constructed!" << endl;
+    m_level = 0;
+    m_nBaddies = 0;
 }
 
 StudentWorld::~StudentWorld() {
@@ -28,14 +30,15 @@ StudentWorld::~StudentWorld() {
 
 int StudentWorld::init()
 {
-    m_socrates = new Socrates(0, VIEW_HEIGHT/2, this);
+    cerr << "init!" << endl;
+    m_socrates = new Socrates(this);
     m_actors.push_back(m_socrates);
     int numDirt = ((180 - 20 * m_level) < 20) ? 20 : (180 - 20 * m_level);
     for (int i = 0; i < numDirt; i++)
     {
         int r = randInt(0, 120);
         int theta = randInt(0, 360);
-        Dirt* temp = new Dirt(128 + r * cos(theta * _PI/180), 128 + r * sin(theta * _PI/180));
+        Dirt* temp = new Dirt(128 + r * cos(theta * _PI/180), 128 + r * sin(theta * _PI/180), this);
         m_actors.push_back(temp);
     }
     return GWSTATUS_CONTINUE_GAME;
@@ -44,13 +47,15 @@ int StudentWorld::init()
 int StudentWorld::move()
 {
     queue<Actor*> dead_actors;
-    
+
     for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
         Actor* a = (*i);
         if(a != nullptr) {
-            if(a->isAlive()) 
-                a->doSomething();
-            else {
+            if(a->isAlive()) {
+               a->doSomething();
+                if(!m_socrates->isAlive())
+                    return GWSTATUS_PLAYER_DIED;
+            } else {
                 dead_actors.push(a);
                 (*i) = nullptr;
             }
@@ -64,7 +69,6 @@ int StudentWorld::move()
             delete dead_actors.front();
         dead_actors.pop();
     }
-
     return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -73,7 +77,12 @@ void StudentWorld::cleanUp()
     for(Actor* a : m_actors) 
         if(a != nullptr)
             delete a;
+    m_actors.clear();
     if(m_socrates != nullptr)
         delete m_socrates;
     return;
+}
+
+void StudentWorld::addActor(Actor* a) {
+    m_actors.push_back(a);
 }

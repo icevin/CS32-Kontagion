@@ -15,10 +15,13 @@ class StudentWorld : public GameWorld
         virtual int init();
         virtual int move();
         virtual void cleanUp();
+        void addActor(Actor* a);
+        
     private:
         std::vector<Actor*> m_actors;
         Socrates* m_socrates;
         int m_level;
+        int m_nBaddies;
 };
 
 #endif // STUDENTWORLD_H_

@@ -9,36 +9,81 @@
 #define _PI 3.14159265358979323846
 #endif
 
-// Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
+#ifndef _RAD_CONST
+#define _RAD_CONST 1.0 / 360 * 2 * _PI
+#endif
 
-Actor::Actor(int imageID, double startX, double startY, Direction dir, int depth, double size, bool isAlive)
-: GraphObject(imageID, startX, startY, dir, depth, size)
+
+//       db       .g8"""bgd MMP""MM""YMM   .g8""8q. `7MM"""Mq.  
+//      ;MM:    .dP'     `M P'   MM   `7 .dP'    `YM. MM   `MM. 
+//     ,V^MM.   dM'       `      MM      dM'      `MM MM   ,M9  
+//    ,M  `MM   MM               MM      MM        MM MMmmdM9   
+//    AbmmmqMA  MM.              MM      MM.      ,MP MM  YM.   
+//   A'     VML `Mb.     ,'      MM      `Mb.    ,dP' MM   `Mb. 
+// .AMA.   .AMMA. `"bmmmd'     .JMML.      `"bmmd"' .JMML. .JMM.
+
+Actor::Actor(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int depth, double size, bool isAlive)
+: GraphObject(imageID, startX, startY, dir, depth, size), m_living(isAlive), m_studentWorld(world)
 {
-    m_living = isAlive;
+
 }
 
 Actor::~Actor() {
-    return;
+
 }
 
 void Actor::doSomething() {
 
 }
 
-Socrates::Socrates(double startX, double startY, StudentWorld* world) 
-: Actor(IID_PLAYER, startX, startY, 0, 0, 1.0, true), m_sprayCharges(0), m_flameCharges(0)
+void Actor::setAliveStatus(bool life) {
+    m_living = life;
+}
+
+int Actor::distanceTo(Actor* other) {
+    return sqrt(
+        pow((getX() - other->getX()), 2) + pow((getY() - other->getY()), 2)
+    );
+}
+
+Actor* Actor::checkCollision(double x, double y) {
+
+}
+
+void Actor::onCollision(Actor* other) {
+
+}
+
+//  .M"""bgd   .g8""8q.     .g8"""bgd `7MM"""Mq.        db   MMP""MM""YMM `7MM"""YMM   .M"""bgd 
+// ,MI    "Y .dP'    `YM. .dP'     `M   MM   `MM.      ;MM:  P'   MM   `7   MM    `7  ,MI    "Y 
+// `MMb.     dM'      `MM dM'       `   MM   ,M9      ,V^MM.      MM        MM   d    `MMb.     
+//   `YMMNq. MM        MM MM            MMmmdM9      ,M  `MM      MM        MMmmMM      `YMMNq. 
+// .     `MM MM.      ,MP MM.           MM  YM.      AbmmmqMA     MM        MM   Y  , .     `MM 
+// Mb     dM `Mb.    ,dP' `Mb.     ,'   MM   `Mb.   A'     VML    MM        MM     ,M Mb     dM 
+// P"Ybmmd"    `"bmmd"'     `"bmmmd'  .JMML. .JMM..AMA.   .AMMA..JMML.    .JMMmmmmMMM P"Ybmmd"  
+
+Socrates::Socrates(StudentWorld* world) 
+: Actor(IID_PLAYER, 0, VIEW_HEIGHT/2, world, 0, 0, 1.0, true), m_sprayCharges(20), m_flameCharges(5), m_health(100)
 {
-    m_studentWorld = world;
+
 }
 
 Socrates::~Socrates() {
 
 }
 
+bool Socrates::isAlive() {
+    return m_health > 0;
+}
+
 void Socrates::doSomething() {
+    // Check if Socrates is alive:
+    if(!isAlive())
+        return;
+
     // Get keypress:
     int keyPress = 0;
-    if(m_studentWorld->getKey(keyPress)) {
+    if(getStudentWorld()->getKey(keyPress)) {
         switch(keyPress) {
             case KEY_PRESS_LEFT:
             case 'a':
@@ -49,11 +94,49 @@ void Socrates::doSomething() {
                 moveAlongCircle(-5);
                 break;
             case KEY_PRESS_SPACE:
+                if(m_sprayCharges > 0) {
+                    m_sprayCharges--;
+                    getStudentWorld()->addActor(
+                        new Spray(
+                            getX() + 2 * SPRITE_RADIUS * cos(getDirection() * _RAD_CONST),
+                            getY() + 2 * SPRITE_RADIUS * sin(getDirection() * _RAD_CONST),
+                            getStudentWorld(),
+                            getDirection()
+                        )
+                    );
+                    getStudentWorld()->playSound(SOUND_PLAYER_SPRAY);
+                }
                 break;
             case KEY_PRESS_ENTER:
+                if(m_flameCharges > 0) {
+                    m_flameCharges--;
+                    int tempDir = getDirection();
+                    for (auto i = 0; i < 16; i++)
+                    {
+                        getStudentWorld()->addActor(
+                            new Flame(
+                                getX() + 2 * SPRITE_RADIUS * cos((tempDir + (22.0 * i)) * _RAD_CONST), 
+                                getY() + 2 * SPRITE_RADIUS * sin((tempDir + (22.0 * i)) * _RAD_CONST), 
+                                getStudentWorld(), 
+                                tempDir + (22.0 * i)
+                            )
+                        );
+                        getStudentWorld()->playSound(SOUND_PLAYER_FIRE);
+                    }
+                    
+                }
                 break;
         }
-    }
+    } else if (m_sprayCharges < 20)
+        m_sprayCharges++;
+}
+
+Actor* Socrates::checkCollision(double x, double y) {
+
+}
+
+void Socrates::onCollision(Actor* other) {
+
 }
 
 void Socrates::moveAlongCircle(int theta) {
@@ -65,8 +148,16 @@ void Socrates::moveAlongCircle(int theta) {
     return;
 }
 
-Dirt::Dirt(double startX, double startY) 
-: Actor(IID_DIRT, startX, startY, 0, 1, 1, true)
+// `7MM"""Yb. `7MMF'`7MM"""Mq. MMP""MM""YMM 
+//   MM    `Yb. MM    MM   `MM.P'   MM   `7 
+//   MM     `Mb MM    MM   ,M9      MM      
+//   MM      MM MM    MMmmdM9       MM      
+//   MM     ,MP MM    MM  YM.       MM      
+//   MM    ,dP' MM    MM   `Mb.     MM      
+// .JMMmmmdP' .JMML..JMML. .JMM.  .JMML.    
+
+Dirt::Dirt(double startX, double startY, StudentWorld* world) 
+: Actor(IID_DIRT, startX, startY, world, 0, 1, 1, true)
 {
 
 }
@@ -76,5 +167,83 @@ Dirt::~Dirt() {
 }
 
 void Dirt::doSomething() {
+
+}
+
+Actor* Dirt::checkCollision(double x, double y) {
+
+}
+
+void Dirt::onCollision(Actor* other) {
+
+}
+// `7MM"""Mq.`7MM"""Mq.   .g8""8q.     `7MMF'`7MM"""YMM    .g8"""bgd MMP""MM""YMM `7MMF'`7MMF'      `7MM"""YMM  
+//   MM   `MM. MM   `MM..dP'    `YM.     MM    MM    `7  .dP'     `M P'   MM   `7   MM    MM          MM    `7  
+//   MM   ,M9  MM   ,M9 dM'      `MM     MM    MM   d    dM'       `      MM        MM    MM          MM   d    
+//   MMmmdM9   MMmmdM9  MM        MM     MM    MMmmMM    MM               MM        MM    MM          MMmmMM    
+//   MM        MM  YM.  MM.      ,MP     MM    MM   Y  , MM.              MM        MM    MM      ,   MM   Y  , 
+//   MM        MM   `Mb.`Mb.    ,dP'(O)  MM    MM     ,M `Mb.     ,'      MM        MM    MM     ,M   MM     ,M 
+// .JMML.    .JMML. .JMM. `"bmmd"'   Ymmm9   .JMMmmmmMMM   `"bmmmd'     .JMML.    .JMML..JMMmmmmMMM .JMMmmmmMMM 
+
+Projectile::Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int lifeTime) 
+: Actor(imageID, startX, startY, world, dir, 1, 1, true), m_lifeTime(lifeTime)
+{
+
+}
+
+Projectile::~Projectile() {
+
+}
+
+void Projectile::doSomething() {
+    if(m_lifeTime <= 0) {
+        Actor::setAliveStatus(false);
+        return;
+    }
+    moveForward(SPRITE_RADIUS*2);
+    m_lifeTime -= SPRITE_RADIUS*2;
+}
+
+Actor* Projectile::checkCollision(double x, double y) {
+
+}
+
+void  Projectile::onCollision(Actor* other) {
+
+}
+
+// `7MM"""YMM `7MMF'            db      `7MMM.     ,MMF'`7MM"""YMM  
+//   MM    `7   MM             ;MM:       MMMb    dPMM    MM    `7  
+//   MM   d     MM            ,V^MM.      M YM   ,M MM    MM   d    
+//   MM""MM     MM           ,M  `MM      M  Mb  M' MM    MMmmMM    
+//   MM   Y     MM      ,    AbmmmqMA     M  YM.P'  MM    MM   Y  , 
+//   MM         MM     ,M   A'     VML    M  `YM'   MM    MM     ,M 
+// .JMML.     .JMMmmmmMMM .AMA.   .AMMA..JML. `'  .JMML..JMMmmmmMMM 
+
+Flame::Flame(double startX, double startY, StudentWorld* world, Direction dir) 
+: Projectile(IID_FLAME, startX, startY, world, dir, 32)
+{
+
+}
+
+Flame::~Flame() {
+
+}
+
+//  .M"""bgd `7MM"""Mq.`7MM"""Mq.        db   `YMM'   `MM'
+// ,MI    "Y   MM   `MM. MM   `MM.      ;MM:    VMA   ,V  
+// `MMb.       MM   ,M9  MM   ,M9      ,V^MM.    VMA ,V   
+//   `YMMNq.   MMmmdM9   MMmmdM9      ,M  `MM     VMMP    
+// .     `MM   MM        MM  YM.      AbmmmqMA     MM     
+// Mb     dM   MM        MM   `Mb.   A'     VML    MM     
+// P"Ybmmd"  .JMML.    .JMML. .JMM..AMA.   .AMMA..JMML.     
+
+Spray::Spray(double startX, double startY, StudentWorld* world, Direction dir)
+: Projectile(IID_SPRAY, startX, startY, world, dir, 112) 
+{
+
+}
+
+Spray::~Spray() {
 
 }
