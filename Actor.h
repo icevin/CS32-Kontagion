@@ -8,19 +8,29 @@ class StudentWorld;
 
 class Actor : public GraphObject {
     public:
-        Actor(int imageID, double startX, double startY, StudentWorld* world, Direction dir = 0, int depth = 0, double size = 1.0, bool alive = true);
+        Actor(
+            int imageID, 
+            double startX, 
+            double startY, 
+            StudentWorld* world, 
+            Direction dir = 0, 
+            int depth = 0, 
+            double size = 1.0, 
+            bool alive = true
+        );
         virtual ~Actor();
         virtual void doSomething();
 
         // All actors can "die"
         virtual bool isAlive() {return m_living;}
         virtual void setAliveStatus(bool life);          // Nicer name than void kill()
-
-        // All actors can collide, but in different ways
-        void onCollision(Actor* other);                   // Apply effects to Actor
+        virtual void hurt(int amt);
 
         // Some actors are damageable by projectiles
         virtual bool isProjDamageable() = 0;
+        virtual bool hasHp() {return false;};
+        virtual bool blocksMovement() {return false;};
+        virtual bool isEdible() {return false;};
 
         // Actors need a StudentWorld pointer to interact with other actors
         StudentWorld* getStudentWorld() {return m_studentWorld;}
@@ -30,22 +40,44 @@ class Actor : public GraphObject {
 };
 
 
-class Socrates : public Actor {
+// Divas are Actors that have hitpoints and are damageable (Socrates and Bacteria)
+class Diva : public Actor {
     public:
-        Socrates(StudentWorld* world);
-        ~Socrates();
+        Diva(
+            int imageID, 
+            double startX, 
+            double startY, 
+            StudentWorld* world, 
+            Direction dir, 
+            int health
+        );
+        ~Diva();
+        virtual void doSomething() = 0;
+
         bool isAlive();
         void setAliveStatus(bool life) {
             m_health = life ? m_health : 0;
         };
-        void doSomething();
-        void onCollision(Actor* other);                   // Apply effects to Actor
-        bool isProjDamageable() {return false;};
-
         int getHealth() {
             return m_health;
         }
         void setHealth(int health);
+        void hurt(int amt);
+        virtual void onHurt() = 0;
+        virtual void onDeath() = 0;
+        bool hasHp() {return true;};
+    private:
+        int m_health;
+};
+
+class Socrates : public Diva {
+    public:
+        Socrates(StudentWorld* world);
+        ~Socrates();
+        void doSomething();
+        void onCollision(Actor* other);                   // Apply effects to Actor
+        bool isProjDamageable() {return false;};
+
         int getSCharges() {
             return m_sprayCharges;
         }
@@ -55,11 +87,13 @@ class Socrates : public Actor {
         void addFCharges(int amt) {
             m_flameCharges += amt;
         }
+
+        void onHurt();
+        void onDeath();
     private:
         void moveAlongCircle(int theta);
         int m_sprayCharges;
         int m_flameCharges;
-        int m_health;
 };
 
 
@@ -69,7 +103,12 @@ class Dirt : public Actor {
         ~Dirt();
         void doSomething();
         void onCollision(Actor* other);                   // Apply effects to Actor
-        bool isProjDamageable() {return true;};
+        bool isProjDamageable() {
+            return true;
+        };
+        bool blocksMovement() {
+            return true;
+        };
     private:
 };
 
@@ -81,7 +120,7 @@ class Projectile : public Actor {
         Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int travelTime);
         ~Projectile();
         void doSomething();
-        void onCollision(Actor* other);                   // Apply effects to Actor
+        virtual bool checkHit() = 0;
         bool isProjDamageable(){return false;};
     private:
         int m_travelTime;
@@ -91,12 +130,14 @@ class Flame : public Projectile {
     public:
         Flame(double startX, double startY, StudentWorld* world, Direction dir);
         ~Flame();
+        bool checkHit();
 };
 
 class Spray : public Projectile {
     public:
         Spray(double startX, double startY, StudentWorld* world, Direction dir);
         ~Spray();
+        bool checkHit();
 };
 
 
@@ -109,7 +150,7 @@ class Prop : public Actor {
         Prop(int imageID, double startX, double startY, StudentWorld* world, Direction dir);
         ~Prop();
         virtual void doSomething();
-        bool isProjDamageable() {return false;}
+        bool isProjDamageable() {return false;};
     private:
 };
 
@@ -117,12 +158,18 @@ class Food : public Prop {
     public:
         Food(double startX, double startY, StudentWorld* world);
         ~Food();
+        bool isEdible() {return true;};
 };
 
-// class Pit :: public Prop {
-//     public:
-//         Pit()
-// }
+class Pit : public Prop {
+    public:
+        Pit(double startX, double startY, StudentWorld* world);
+        ~Pit();
+        void doSomething();
+    private:
+        enum bTypes {RegS, AgrS, ECol};
+        int m_inventory[3];
+};
 
 
 // Goodies
@@ -176,5 +223,46 @@ class Fungus : public Goodie {
         Fungus(double startX, double startY, StudentWorld* world);
         ~Fungus();
         void onPickup();
+};
+
+
+// Bacteria
+
+class Bacteria : public Diva {
+    public:
+        Bacteria(int imageID, double startX, double startY, StudentWorld* world, int health);
+        ~Bacteria();
+        bool tryMove(Direction dir, int units);
+        bool isProjDamageable() {return true;};
+        virtual void doSomething();
+        virtual void move() = 0;
+        virtual bool aggr() {
+            return false;
+        }
+        virtual void spawnNew(double x, double y);
+        virtual void onOverlap();
+        virtual void onHurt() = 0;
+        virtual void onDeath() = 0;
+    private:
+        int m_nFoodEaten;
+        int m_hitPoints;
+};
+
+class Salmonella : public Bacteria {
+    public:
+        Salmonella(double startX, double startY, StudentWorld* world, int health = 4);
+        ~Salmonella();
+        void move();
+        void onHurt();
+        void onDeath();
+        virtual bool aggr();
+        virtual void onOverlap();
+        virtual void spawnNew(double x, double y);
+    private:
+        int m_movementPlanDistance;
+};
+
+class Ecoli : public Bacteria {
+
 };
 #endif // ACTOR_H_

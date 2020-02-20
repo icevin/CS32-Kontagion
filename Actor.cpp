@@ -46,8 +46,35 @@ void Actor::setAliveStatus(bool life) {
     m_living = life;
 }
 
-void Actor::onCollision(Actor* other) {
+void Actor::hurt(int amt) {
+    m_living = amt > 0 ? true : false;
+}
 
+// DIVAS
+
+Diva::Diva(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int health)
+: Actor(imageID, startX, startY, world, dir, 0, 1, true), m_health(health) {
+
+}
+
+Diva::~Diva() {
+
+}
+
+bool Diva::isAlive() {
+    return m_health > 0;
+}
+
+void Diva::setHealth(int health)  {
+    if(health < m_health && health > 0)
+        onHurt();
+    m_health = health;
+    if(m_health <= 0)
+        onDeath();
+}
+
+void Diva::hurt(int amt) {
+    setHealth(m_health - amt);
 }
 
 //  .M"""bgd   .g8""8q.     .g8"""bgd `7MM"""Mq.        db   MMP""MM""YMM `7MM"""YMM   .M"""bgd 
@@ -59,17 +86,13 @@ void Actor::onCollision(Actor* other) {
 // P"Ybmmd"    `"bmmd"'     `"bmmmd'  .JMML. .JMM..AMA.   .AMMA..JMML.    .JMMmmmmMMM P"Ybmmd"  
 
 Socrates::Socrates(StudentWorld* world) 
-: Actor(IID_PLAYER, 0, VIEW_HEIGHT/2, world, 0, 0, 1.0, true), m_sprayCharges(20), m_flameCharges(5), m_health(100)
+: Diva(IID_PLAYER, 0, VIEW_HEIGHT/2, world, 0, 100), m_sprayCharges(20), m_flameCharges(5)
 {
 
 }
 
 Socrates::~Socrates() {
 
-}
-
-bool Socrates::isAlive() {
-    return m_health > 0;
 }
 
 void Socrates::doSomething() {
@@ -127,14 +150,6 @@ void Socrates::doSomething() {
         m_sprayCharges++;
 }
 
-void Socrates::setHealth(int health)  {
-    if(health < m_health && health > 0)
-        getStudentWorld()->playSound(SOUND_PLAYER_HURT);
-    m_health = health;
-    if(m_health <= 0)
-        getStudentWorld()->playSound(SOUND_PLAYER_DIE);
-}
-
 void Socrates::moveAlongCircle(int theta) {
     int currentAngle = 180 + getDirection();
     double newX = 128 + (VIEW_RADIUS) * cos((currentAngle + theta) * (_PI / 180));
@@ -142,6 +157,16 @@ void Socrates::moveAlongCircle(int theta) {
     moveTo(newX, newY);
     setDirection(getDirection() + theta);
     return;
+}
+
+void Socrates::onHurt() {
+    cerr << "PLAY SOUND_PLAYER_HURT" << endl;
+    getStudentWorld()->playSound(SOUND_PLAYER_HURT);
+}
+
+void Socrates::onDeath() {
+    cerr << "PLAY SOUND_PLAYER_DIE" << endl;
+    getStudentWorld()->playSound(SOUND_PLAYER_DIE);
 }
 
 // `7MM"""Yb. `7MMF'`7MM"""Mq. MMP""MM""YMM 
@@ -166,9 +191,6 @@ void Dirt::doSomething() {
 
 }
 
-void Dirt::onCollision(Actor* other) {
-
-}
 // `7MM"""Mq.`7MM"""Mq.   .g8""8q.     `7MMF'`7MM"""YMM    .g8"""bgd MMP""MM""YMM `7MMF'`7MMF'      `7MM"""YMM  
 //   MM   `MM. MM   `MM..dP'    `YM.     MM    MM    `7  .dP'     `M P'   MM   `7   MM    MM          MM    `7  
 //   MM   ,M9  MM   ,M9 dM'      `MM     MM    MM   d    dM'       `      MM        MM    MM          MM   d    
@@ -190,7 +212,7 @@ Projectile::~Projectile() {
 void Projectile::doSomething() {
     if(!isAlive())
         return;
-    if(getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS*2, this)) {
+    if(checkHit()) {
         setAliveStatus(false);
         return;
     }
@@ -200,10 +222,6 @@ void Projectile::doSomething() {
         Actor::setAliveStatus(false);
         return;
     }
-}
-
-void Projectile::onCollision(Actor* other) {
-
 }
 
 // `7MM"""YMM `7MMF'            db      `7MMM.     ,MMF'`7MM"""YMM  
@@ -224,6 +242,10 @@ Flame::~Flame() {
 
 }
 
+bool Flame::checkHit() {
+    return getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS*2, this, true, 5);
+}
+
 //  .M"""bgd `7MM"""Mq.`7MM"""Mq.        db   `YMM'   `MM'
 // ,MI    "Y   MM   `MM. MM   `MM.      ;MM:    VMA   ,V  
 // `MMb.       MM   ,M9  MM   ,M9      ,V^MM.    VMA ,V   
@@ -240,6 +262,10 @@ Spray::Spray(double startX, double startY, StudentWorld* world, Direction dir)
 
 Spray::~Spray() {
 
+}
+
+bool Spray::checkHit() {
+    return getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS*2, this, true, 2);
 }
 
 // `7MM"""Mq.`7MM"""Mq.   .g8""8q. `7MM"""Mq.  .M"""bgd 
@@ -279,7 +305,44 @@ Food::Food(double startX, double startY, StudentWorld* world)
 }
 
 Food::~Food() {
+    cerr << "food eaten!" << endl;
+}
 
+// `7MM"""Mq.`7MMF'MMP""MM""YMM 
+//   MM   `MM. MM  P'   MM   `7 
+//   MM   ,M9  MM       MM      
+//   MMmmdM9   MM       MM      
+//   MM        MM       MM      
+//   MM        MM       MM      
+// .JMML.    .JMML.   .JMML.    
+
+Pit::Pit(double startX, double startY, StudentWorld* world)
+: Prop(IID_PIT, startX, startY, world, 0) {
+    m_inventory[RegS] = 5;      // 5
+    m_inventory[AgrS] = 0;      // 3
+    m_inventory[ECol] = 0;      // 2
+    getStudentWorld()->incEnemies();
+}
+
+Pit::~Pit() {
+    getStudentWorld()->decEnemies();
+}
+
+void Pit::doSomething() {
+    if(m_inventory[RegS] + m_inventory[AgrS] + m_inventory[ECol] == 0) {
+        setAliveStatus(false);
+    }
+    if(randInt(1,50) == 1) {
+        int type = RegS;
+        do {
+             type = randInt(RegS, ECol);
+        } while (m_inventory[type] <= 0 && m_inventory[RegS] + m_inventory[AgrS] + m_inventory[ECol] != 0);
+        if(type == RegS) {
+            getStudentWorld()->addActor(new Salmonella(getX(), getY(), getStudentWorld()));
+            m_inventory[RegS]--;
+        }
+        getStudentWorld()->playSound(SOUND_BACTERIUM_BORN);
+    }
 }
   
 //   .g8"""bgd    .g8""8q.     .g8""8q. `7MM"""Yb. `7MMF'`7MM"""YMM  
@@ -303,7 +366,7 @@ Goodie::~Goodie() {
 void Goodie::doSomething() {
     if(!isAlive())
         return;
-    if(getStudentWorld()->socCheck(getX(), getY(), SPRITE_WIDTH)) {
+    if(getStudentWorld()->distToSoc(getX(), getY()) <= SPRITE_WIDTH) {
         onPickup();
         setAliveStatus(false);
         return;
@@ -381,4 +444,128 @@ void Fungus::onPickup() {
     getStudentWorld()->increaseScore(-50);
     getStudentWorld()->hurtSoc(20);
     setAliveStatus(false); 
+}
+
+// `7MM"""Yp,      db       .g8"""bgd MMP""MM""YMM `7MM"""YMM  `7MM"""Mq.  `7MMF'      db      
+//   MM    Yb     ;MM:    .dP'     `M P'   MM   `7   MM    `7    MM   `MM.   MM       ;MM:     
+//   MM    dP    ,V^MM.   dM'       `      MM        MM   d      MM   ,M9    MM      ,V^MM.    
+//   MM"""bg.   ,M  `MM   MM               MM        MMmmMM      MMmmdM9     MM     ,M  `MM    
+//   MM    `Y   AbmmmqMA  MM.              MM        MM   Y  ,   MM  YM.     MM     AbmmmqMA   
+//   MM    ,9  A'     VML `Mb.     ,'      MM        MM     ,M   MM   `Mb.   MM    A'     VML  
+// .JMMmmmd9 .AMA.   .AMMA. `"bmmmd'     .JMML.    .JMMmmmmMMM .JMML. .JMM..JMML..AMA.   .AMMA.
+
+Bacteria::Bacteria(int imageID, double startX, double startY, StudentWorld* world, int health)
+: Diva(imageID, startX, startY, world, 90, health), m_nFoodEaten(0) {
+    getStudentWorld()->incEnemies();
+}
+
+Bacteria::~Bacteria() {
+    getStudentWorld()->decEnemies();
+}
+
+bool Bacteria::tryMove(Direction dir, int units) {
+    setDirection(dir);
+    double newX = 0, newY = 0;
+    getPositionInThisDirection(dir, units, newX, newY);
+    if(!getStudentWorld()->hitCheck(newX, newY, SPRITE_WIDTH/2, this)) {
+        if(sqrt(pow(double(newX - VIEW_WIDTH/2.0), 2.0) + pow(double(newY - VIEW_HEIGHT/2.0), 2.0)) < VIEW_RADIUS) {
+            moveAngle(dir, units);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Bacteria::doSomething() {
+    if(!isAlive())
+        return;
+    bool mode = aggr();
+    if(getStudentWorld()->distToSoc(getX(), getY()) <= SPRITE_WIDTH)
+        onOverlap();
+    else {
+        double newX = getX();
+        double newY = getY();
+        if(m_nFoodEaten >= 3) {
+            newX += ((getX() < VIEW_WIDTH / 2) ? 1 : -1) * SPRITE_RADIUS;
+            newY += ((getY() < VIEW_HEIGHT / 2) ? 1 : -1) * SPRITE_RADIUS;
+            spawnNew(newX, newY);
+            m_nFoodEaten = 0;
+        } else if(getStudentWorld()->findClosestFood(newX, newY, SPRITE_WIDTH, this, true)) {
+            m_nFoodEaten++;
+        }
+    }
+    if(!mode)
+        move();
+}
+
+void Bacteria::spawnNew(double x, double y) {
+
+}
+
+void Bacteria::onOverlap() {
+
+}
+
+//  .M"""bgd      db      `7MMF'      `7MMM.     ,MMF' .g8""8q. `7MN.   `7MF'`7MM"""YMM  `7MMF'      `7MMF'            db      
+// ,MI    "Y     ;MM:       MM          MMMb    dPMM .dP'    `YM. MMN.    M    MM    `7    MM          MM             ;MM:     
+// `MMb.        ,V^MM.      MM          M YM   ,M MM dM'      `MM M YMb   M    MM   d      MM          MM            ,V^MM.    
+//   `YMMNq.   ,M  `MM      MM          M  Mb  M' MM MM        MM M  `MN. M    MMmmMM      MM          MM           ,M  `MM    
+// .     `MM   AbmmmqMA     MM      ,   M  YM.P'  MM MM.      ,MP M   `MM.M    MM   Y  ,   MM      ,   MM      ,    AbmmmqMA   
+// Mb     dM  A'     VML    MM     ,M   M  `YM'   MM `Mb.    ,dP' M     YMM    MM     ,M   MM     ,M   MM     ,M   A'     VML  
+// P"Ybmmd" .AMA.   .AMMA..JMMmmmmMMM .JML. `'  .JMML. `"bmmd"' .JML.    YM  .JMMmmmmMMM .JMMmmmmMMM .JMMmmmmMMM .AMA.   .AMMA.
+
+Salmonella::Salmonella(double startX, double startY, StudentWorld* world, int health) 
+: Bacteria(IID_SALMONELLA, startX, startY, world, health), m_movementPlanDistance(0) {
+
+}
+
+Salmonella::~Salmonella() {
+    
+}
+
+void Salmonella::onHurt() {
+    cerr << "PLAY SOUND_SALMONELLA_HURT" << endl;
+    getStudentWorld()->playSound(SOUND_SALMONELLA_HURT);
+}
+
+void Salmonella::onDeath() {
+    cerr << "PLAY SOUND_SALMONELLA_DIE" << endl;
+    getStudentWorld()->playSound(SOUND_SALMONELLA_DIE);
+}
+
+void Salmonella::move() {
+    if(m_movementPlanDistance > 0) {
+        m_movementPlanDistance -= 1;
+        if(tryMove(getDirection(), 3)) {
+            return;
+        } else {
+            setDirection(randInt(0, 359));
+            m_movementPlanDistance = 10;
+        }
+    } else {
+        double newX = getX(), newY = getY();
+        if(getStudentWorld()->findClosestFood(newX, newY, 128, this)) {
+            Direction newDir = getStudentWorld()->directionTo(getX(), getY(), newX, newY);
+            if(!tryMove(newDir, 3)) {
+                setDirection(randInt(0, 359));
+                m_movementPlanDistance = 10;
+            }
+        } else {
+            setDirection(randInt(0, 359));
+            m_movementPlanDistance = 10;  
+        }
+    }
+}
+
+bool Salmonella::aggr() {
+    return false;
+}
+
+void Salmonella::onOverlap() {
+    getStudentWorld()->hurtSoc(1);
+}
+
+void Salmonella::spawnNew(double x, double y) {
+    Actor* temp = new Salmonella(x, y, getStudentWorld());
+    getStudentWorld()->addActor(temp);
 }

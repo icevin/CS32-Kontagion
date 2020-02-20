@@ -1,8 +1,10 @@
 #include "StudentWorld.h"
 
 #include <algorithm>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <queue>
 #include <sstream>
 #include <string>
@@ -20,10 +22,10 @@ GameWorld* createStudentWorld(string assetPath)
 }
 
 StudentWorld::StudentWorld(string assetPath)
-: GameWorld(assetPath), m_nBaddies(0)
+: GameWorld(assetPath), m_nEnemies(0)
 {
     cerr << "StudentWorld constructed!" << endl;
-    m_nBaddies = 0;
+    m_nEnemies = 0;
 }
 
 StudentWorld::~StudentWorld() {
@@ -36,6 +38,14 @@ int StudentWorld::init()
     m_socrates = new Socrates(this);
     //m_actors.push_back(m_socrates);
 
+    // Add L pits to the Petri dish
+    populate<Pit>(getLevel());
+    
+    
+    Actor* temp = new Salmonella(128, 128, this);
+    addActor(temp);
+
+    //addActor(new Food(150, 150, this));
 
     // Add min(5 * L, 25) food objects to the Petri dish
     populate<Food>(min(5 * getLevel(), 25));
@@ -97,8 +107,12 @@ int StudentWorld::move()
 
     // Update Stat Text
     ostringstream titleText;
-    titleText << setw(5) << "Score: " << setfill('0') << setw(6) << getScore() <<setfill(' ');
-    titleText <<  "  Level: " << setw(2) << getLevel();
+    titleText << setw(5) << "Score: ";
+    if(getScore() >= 0)
+        titleText << setfill('0') << setw(6) << getScore();
+    else
+        titleText << "-" << setfill('0') << setw(5) << abs(getScore());
+    titleText << setfill(' ') <<  "  Level: " << setw(2) << getLevel();
     titleText <<  "  Lives: " <<  setw(1) << getLives();
     titleText <<  "  Health: " <<  setw(3) << m_socrates->getHealth();
     titleText <<  "  Sprays: " <<  setw(2) << m_socrates->getSCharges();
@@ -124,24 +138,59 @@ void StudentWorld::addActor(Actor* a) {
     m_actors.push_back(a);
 }
 
-bool StudentWorld::hitCheck(double x, double y, double radius, Actor* orig) {
+bool StudentWorld::hitCheck(double x, double y, double radius, Actor* orig, bool destructive, int hitFor) {
     queue<Actor*> p_overlaps = checkOverlap(x, y, radius, orig);
     while(!p_overlaps.empty()) {
-        if(p_overlaps.front() != nullptr && p_overlaps.front()->isProjDamageable()) {
-            cerr << "hit" << p_overlaps.front()  << "|" << typeid(p_overlaps.front()).name() << endl;
-            p_overlaps.front()->setAliveStatus(false);
+        if(p_overlaps.front() != nullptr && ((destructive && p_overlaps.front()->isProjDamageable()) || p_overlaps.front()->blocksMovement())) {
+            if(destructive) {
+                if(p_overlaps.front()->hasHp()) {
+                    p_overlaps.front()->hurt(hitFor);
+                } else {
+                    p_overlaps.front()->setAliveStatus(false);
+                }
+            }
             return true;
         } else {
             p_overlaps.pop();
         }
     }
+    return false;
 }
 
-bool StudentWorld::socCheck(double x, double y, double radius) {
-    return radius >= sqrt(
+bool StudentWorld::findClosestFood(double& x, double& y, double radius, Actor* orig, bool destructive) {
+    map<double, Actor*> menu;
+    queue<Actor*> p_overlaps = checkOverlap(x, y, radius, orig);
+    while(!p_overlaps.empty()) {
+        if(p_overlaps.front() != nullptr && p_overlaps.front()->isEdible())
+            menu.insert(pair<double, Actor*>(getDistance(orig, p_overlaps.front()), p_overlaps.front()));
+        p_overlaps.pop();
+    }
+    if(!menu.empty()) {
+        x = menu.begin()->second->getX();
+        y = menu.begin()->second->getY();
+        if(destructive) {
+            menu.begin()->second->setAliveStatus(false);
+            return true;
+        }
+    }
+    return !menu.empty();
+}
+
+double StudentWorld::distToSoc(double x, double y) {
+    return  sqrt(
                 pow(double(x - m_socrates->getX()), 2.0) + 
                 pow(double(y - m_socrates->getY()), 2.0)
             );
+}
+
+Direction StudentWorld::dirToSoc(double x, double y) {
+    return directionTo(x, y, m_socrates->getX(), m_socrates->getY());
+}
+
+Direction StudentWorld::directionTo(double fromX, double fromY, double toX, double toY) {
+    if(fromX == toX && fromY == toY)
+        return -999;                        // Domain error
+    return atan2(toY - fromY, toX - fromX) * 180.0 / _PI;
 }
 
 void StudentWorld::hurtSoc(int amt) {
@@ -195,4 +244,11 @@ void StudentWorld::addRadial() {
         (VIEW_HEIGHT/2) + VIEW_RADIUS * sin(theta * _PI/180), 
         this
     ));
+}
+
+double StudentWorld::getDistance(Actor* a, Actor* b) {
+    return sqrt(
+                pow(double(b->getX() - a->getX()), 2.0) + 
+                pow(double(b->getY() - a->getY()), 2.0)
+            );
 }
