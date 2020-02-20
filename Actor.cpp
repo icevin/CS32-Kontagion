@@ -193,7 +193,7 @@ void Projectile::doSomething() {
     }
 }
 
-void  Projectile::onCollision(Actor* other) {
+void Projectile::onCollision(Actor* other) {
 
 }
 

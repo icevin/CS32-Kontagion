@@ -41,6 +41,22 @@ class Socrates : public Actor {
         void doSomething();
         void onCollision(Actor* other);                   // Apply effects to Actor
         bool isProjDamageable() {return false;};
+
+        int getHealth() {
+            return m_health;
+        }
+        void setHealth(int health) {
+            m_health = health;
+        }
+        int getSCharges() {
+            return m_sprayCharges;
+        }
+        int getFCharges() {
+            return m_flameCharges;
+        }
+        void addFCharges(int amt) {
+            m_flameCharges += amt;
+        }
     private:
         void moveAlongCircle(int theta);
         int m_sprayCharges;

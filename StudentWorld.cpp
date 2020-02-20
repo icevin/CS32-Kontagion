@@ -1,9 +1,12 @@
 #include "StudentWorld.h"
 
 #include <algorithm>
+#include <iomanip>
+#include <iostream>
+#include <queue>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <queue>
 
 #ifndef _PI
 #define _PI 3.14159265358979323846
@@ -17,10 +20,9 @@ GameWorld* createStudentWorld(string assetPath)
 }
 
 StudentWorld::StudentWorld(string assetPath)
-: GameWorld(assetPath), m_level(0), m_nBaddies(0)
+: GameWorld(assetPath), m_nBaddies(0)
 {
     cerr << "StudentWorld constructed!" << endl;
-    m_level = 1;
     m_nBaddies = 0;
 }
 
@@ -36,10 +38,10 @@ int StudentWorld::init()
 
 
     // Add min(5 * L, 25) food objects to the Petri dish
-    populate<Food>(((5 * m_level) > 25) ? 25 : 5 * m_level);
+    populate<Food>(((5 * getLevel()) > 25) ? 25 : 5 * getLevel());
     
     // Add max(180 –20 * L, 20) dirt at random locations
-    populate<Dirt>((180 - (20 * m_level)) < 20 ? 20 : (180 - 20 * m_level));
+    populate<Dirt>((180 - (20 * getLevel()) < 20 ? 20 : (180 - 20 * getLevel())));
     
     return GWSTATUS_CONTINUE_GAME;
 }
@@ -52,15 +54,12 @@ int StudentWorld::move()
         Actor* a = (*i);
         if(a != nullptr) {
             if(a->isAlive()) {
-                // cerr << "before " << a << " did something" << endl;
                 a->doSomething();
-                // cerr << "after " << a << " did something" << endl;
                 if(!m_socrates->isAlive())
                     return GWSTATUS_PLAYER_DIED;
                 if(!a->isAlive()) {
                     dead_actors.push(a);
                     (*i) = nullptr;
-                    cerr << a << " died" << endl;
                 }
             } else {
                 dead_actors.push(a);
@@ -69,10 +68,18 @@ int StudentWorld::move()
         }
     }
 
-    m_actors.erase(remove(begin(m_actors), end(m_actors), nullptr), end(m_actors));
+    ostringstream titleText;
+    titleText << setw(5) << "Score: " << setfill('0') << setw(6) << getScore() <<setfill(' ');
+    titleText <<  "  Level: " << setw(2) << getLevel();
+    titleText <<  "  Lives: " <<  setw(1) << getLives();
+    titleText <<  "  Health: " <<  setw(3) << m_socrates->getHealth();
+    titleText <<  "  Sprays: " <<  setw(2) << m_socrates->getSCharges();
+    titleText <<  "  Flames: " <<  setw(2) << m_socrates->getFCharges();
 
+    setGameStatText(titleText.str());    
+
+    m_actors.erase(remove(begin(m_actors), end(m_actors), nullptr), end(m_actors));
     while(!dead_actors.empty()) {
-        cerr << dead_actors.front() << endl;
         if(dead_actors.front() != nullptr)
             delete dead_actors.front();
         dead_actors.pop();
@@ -108,21 +115,25 @@ bool StudentWorld::hitCheck(double x, double y, double radius, Actor* orig) {
     }
 }
 
+bool StudentWorld::socCheck(double x, double y, double radius) {
+    return radius >= sqrt(
+                pow(double(x - m_socrates->getX()), 2.0) + 
+                pow(double(y - m_socrates->getY()), 2.0)
+            );
+}
+
 queue<Actor*> StudentWorld::checkOverlap(double x, double y, double radius, Actor* orig) {
     queue<Actor*> overlaps;
     for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
         Actor* a = (*i);
-        if( a != nullptr && 
+        if( 
+            a != nullptr && 
             sqrt(
-                pow(
-                    double(x - a->getX()),
-                    2.0
-                ) + pow(
-                    double(y - a->getY()),
-                    2.0
-                )
+                pow(double(x - a->getX()), 2.0) + 
+                pow(double(y - a->getY()), 2.0)
             ) <= radius && 
-            a != orig)
+            a != orig
+        )
             overlaps.push(a);
     }
     return overlaps;

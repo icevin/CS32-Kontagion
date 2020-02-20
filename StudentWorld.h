@@ -18,13 +18,18 @@ class StudentWorld : public GameWorld
         virtual void cleanUp();
         void addActor(Actor* a);
         bool hitCheck(double x, double y, double radius, Actor* orig);
-        std::queue<Actor*> checkOverlap(double x, double y, double radius, Actor* orig);
+        bool socCheck(double x, double y, double radius);
+        void hurtSoc(int amt);
+        void healSoc();
+        void addCharges(int amt);
     private:
         std::vector<Actor*> m_actors;
+        std::queue<Actor*> checkOverlap(double x, double y, double radius, Actor* orig);
+        template<class A> void populate(int num);
+        
         Socrates* m_socrates;
         int m_level;
         int m_nBaddies;
-        template<class A> void populate(int num);
 };
 
 #endif // STUDENTWORLD_H_
