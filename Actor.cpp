@@ -305,7 +305,7 @@ Food::Food(double startX, double startY, StudentWorld* world)
 }
 
 Food::~Food() {
-    cerr << "food eaten!" << endl;
+
 }
 
 // `7MM"""Mq.`7MMF'MMP""MM""YMM 
@@ -319,8 +319,8 @@ Food::~Food() {
 Pit::Pit(double startX, double startY, StudentWorld* world)
 : Prop(IID_PIT, startX, startY, world, 0) {
     m_inventory[RegS] = 5;      // 5
-    m_inventory[AgrS] = 0;      // 3
-    m_inventory[ECol] = 0;      // 2
+    m_inventory[AgrS] = 3;      // 3
+    m_inventory[ECol] = 2;      // 2
     getStudentWorld()->incEnemies();
 }
 
@@ -337,10 +337,13 @@ void Pit::doSomething() {
         do {
              type = randInt(RegS, ECol);
         } while (m_inventory[type] <= 0 && m_inventory[RegS] + m_inventory[AgrS] + m_inventory[ECol] != 0);
-        if(type == RegS) {
+        if(type == RegS)
             getStudentWorld()->addActor(new Salmonella(getX(), getY(), getStudentWorld()));
-            m_inventory[RegS]--;
-        }
+        if(type == AgrS)
+            getStudentWorld()->addActor(new AggressiveSalmonella(getX(), getY(), getStudentWorld()));
+        if(type == ECol)
+            getStudentWorld()->addActor(new EColi(getX(), getY(), getStudentWorld()));
+        m_inventory[type]--;
         getStudentWorld()->playSound(SOUND_BACTERIUM_BORN);
     }
 }
@@ -498,12 +501,10 @@ void Bacteria::doSomething() {
         move();
 }
 
-void Bacteria::spawnNew(double x, double y) {
-
-}
-
-void Bacteria::onOverlap() {
-
+void Bacteria::onDeath() {
+    getStudentWorld()->increaseScore(100);
+    if(randInt(1,2) == 1)
+        getStudentWorld()->addActor(new Food(getX(), getY(), getStudentWorld()));
 }
 
 //  .M"""bgd      db      `7MMF'      `7MMM.     ,MMF' .g8""8q. `7MN.   `7MF'`7MM"""YMM  `7MMF'      `7MMF'            db      
@@ -528,7 +529,7 @@ void Salmonella::onHurt() {
     getStudentWorld()->playSound(SOUND_SALMONELLA_HURT);
 }
 
-void Salmonella::onDeath() {
+void Salmonella::uniqueOnDeath() {
     cerr << "PLAY SOUND_SALMONELLA_DIE" << endl;
     getStudentWorld()->playSound(SOUND_SALMONELLA_DIE);
 }
@@ -568,4 +569,65 @@ void Salmonella::onOverlap() {
 void Salmonella::spawnNew(double x, double y) {
     Actor* temp = new Salmonella(x, y, getStudentWorld());
     getStudentWorld()->addActor(temp);
+}
+
+AggressiveSalmonella::AggressiveSalmonella(double x, double y, StudentWorld* world)
+: Salmonella(x, y, world, 10) {
+
+}
+
+AggressiveSalmonella::~AggressiveSalmonella() {
+
+}
+
+bool AggressiveSalmonella::aggr() {
+    if(getStudentWorld()->distToSoc(getX(), getY()) <= 72) {
+        tryMove(getStudentWorld()->dirToSoc(getX(), getY()), 3);
+        return true;
+    }
+    return false;
+}
+
+void AggressiveSalmonella::onOverlap() {
+    getStudentWorld()->hurtSoc(2);
+}
+
+void AggressiveSalmonella::spawnNew(double x, double y) {
+    getStudentWorld()->addActor(new AggressiveSalmonella(x, y, getStudentWorld()));
+}
+
+EColi::EColi(double startX, double startY, StudentWorld* world)
+: Bacteria(IID_ECOLI, startX, startY, world, 5) {
+
+}
+
+EColi::~EColi() {
+
+}
+
+void EColi::move() {
+    if(getStudentWorld()->distToSoc(getX(), getY()) <= 256) {
+        int theta = getStudentWorld()->dirToSoc(getX(), getY());
+        for (int i = 0; i < 10 && !tryMove(theta, 3); i++, theta += 10)
+            if(theta + 10 >= 360)
+                theta -= 360;
+    }
+}
+
+void EColi::onHurt() {
+    cerr << "PLAY SOUND_ECOLI_HURT" << endl;
+    getStudentWorld()->playSound(SOUND_ECOLI_HURT);
+}
+
+void EColi::uniqueOnDeath() {
+    cerr << "PLAY SOUND_ECOLI_DIE" << endl;
+    getStudentWorld()->playSound(SOUND_ECOLI_DIE);
+}
+
+void EColi::onOverlap() {
+    getStudentWorld()->hurtSoc(4);
+}
+
+void EColi::spawnNew(double x, double y) {
+    getStudentWorld()->addActor(new EColi(x, y, getStudentWorld()));
 }

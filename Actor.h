@@ -239,10 +239,11 @@ class Bacteria : public Diva {
         virtual bool aggr() {
             return false;
         }
-        virtual void spawnNew(double x, double y);
-        virtual void onOverlap();
+        virtual void spawnNew(double x, double y) = 0;
+        virtual void onOverlap() = 0;
         virtual void onHurt() = 0;
-        virtual void onDeath() = 0;
+        virtual void onDeath();
+        virtual void uniqueOnDeath() = 0;
     private:
         int m_nFoodEaten;
         int m_hitPoints;
@@ -254,7 +255,7 @@ class Salmonella : public Bacteria {
         ~Salmonella();
         void move();
         void onHurt();
-        void onDeath();
+        void uniqueOnDeath();
         virtual bool aggr();
         virtual void onOverlap();
         virtual void spawnNew(double x, double y);
@@ -262,7 +263,24 @@ class Salmonella : public Bacteria {
         int m_movementPlanDistance;
 };
 
-class Ecoli : public Bacteria {
+class AggressiveSalmonella : public Salmonella {
+    public:
+        AggressiveSalmonella(double startX, double startY, StudentWorld* world);
+        ~AggressiveSalmonella();
+        bool aggr();
+        void onOverlap();
+        void spawnNew(double x, double y);
+};
 
+class EColi : public Bacteria {
+    public:
+        EColi(double startX, double startY, StudentWorld* world);
+        ~EColi();
+        void move();
+        void onHurt();
+        void uniqueOnDeath();
+        void onOverlap();
+        void spawnNew(double x, double y);
+    private:
 };
 #endif // ACTOR_H_

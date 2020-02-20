@@ -21,6 +21,11 @@ GameWorld* createStudentWorld(string assetPath)
 	return new StudentWorld(assetPath);
 }
 
+bool testOut(int i, int x) {
+    cerr << "i: " << i << " theta: " << x << endl;
+    return false;
+}
+
 StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath), m_nEnemies(0)
 {
@@ -40,12 +45,6 @@ int StudentWorld::init()
 
     // Add L pits to the Petri dish
     populate<Pit>(getLevel());
-    
-    
-    Actor* temp = new Salmonella(128, 128, this);
-    addActor(temp);
-
-    //addActor(new Food(150, 150, this));
 
     // Add min(5 * L, 25) food objects to the Petri dish
     populate<Food>(min(5 * getLevel(), 25));
@@ -66,11 +65,16 @@ int StudentWorld::move()
         if(a != nullptr) {
             if(a->isAlive()) {
                 a->doSomething();
-                if(!m_socrates->isAlive())
+                if(!m_socrates->isAlive()) {
+                    decLives();
                     return GWSTATUS_PLAYER_DIED;
+                }
                 if(!a->isAlive()) {
                     dead_actors.push(a);
                     (*i) = nullptr;
+                }
+                if(m_nEnemies == 0) {
+                     return GWSTATUS_FINISHED_LEVEL;
                 }
             } else {
                 dead_actors.push(a);
@@ -87,6 +91,7 @@ int StudentWorld::move()
         dead_actors.pop();
     }
 
+    // Add potential new actors
     int chanceFungus = max(510 - getLevel() * 10, 200);
     int genF = randInt(0, chanceFungus - 1);
     if(genF == 0) {      // Add fungus

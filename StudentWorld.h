@@ -41,7 +41,6 @@ class StudentWorld : public GameWorld
         double getDistance(Actor* a, Actor* b);
 
         Socrates* m_socrates;
-        int m_level;
         int m_nEnemies;
 };
 
