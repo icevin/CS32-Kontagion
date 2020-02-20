@@ -17,12 +17,14 @@ class StudentWorld : public GameWorld
         virtual int move();
         virtual void cleanUp();
         void addActor(Actor* a);
+        bool hitCheck(double x, double y, double radius, Actor* orig);
         std::queue<Actor*> checkOverlap(double x, double y, double radius, Actor* orig);
     private:
         std::vector<Actor*> m_actors;
         Socrates* m_socrates;
         int m_level;
         int m_nBaddies;
+        template<class A> void populate(int num);
 };
 
 #endif // STUDENTWORLD_H_

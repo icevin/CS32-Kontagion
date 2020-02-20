@@ -20,7 +20,7 @@ StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath), m_level(0), m_nBaddies(0)
 {
     cerr << "StudentWorld constructed!" << endl;
-    m_level = 0;
+    m_level = 1;
     m_nBaddies = 0;
 }
 
@@ -30,21 +30,17 @@ StudentWorld::~StudentWorld() {
 
 int StudentWorld::init()
 {
-    cerr << "init!" << endl;
+    // Create and add a new Socrates object at location (0, VIEW_HEIGHT/2)
     m_socrates = new Socrates(this);
     //m_actors.push_back(m_socrates);
-    int numDirt = ((180 - 20 * m_level) < 20) ? 20 : (180 - 20 * m_level);
-    for (int i = 0; i < numDirt; i++)
-    {
-        int newX, newY;
-        // do {
-            int r = randInt(0, 120);
-            int theta = randInt(0, 360);
-            newX = 128 + r * cos(theta * _PI/180);
-            newY = 128 + r * sin(theta * _PI/180);
-        // } while (checkOverlap(newX, newY, 2 * SPRITE_RADIUS) != nullptr);
-        m_actors.push_back(new Dirt(newX, newY, this));
-    }
+
+
+    // Add min(5 * L, 25) food objects to the Petri dish
+    populate<Food>(((5 * m_level) > 25) ? 25 : 5 * m_level);
+    
+    // Add max(180 –20 * L, 20) dirt at random locations
+    populate<Dirt>((180 - (20 * m_level)) < 20 ? 20 : (180 - 20 * m_level));
+    
     return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -99,6 +95,19 @@ void StudentWorld::addActor(Actor* a) {
     m_actors.push_back(a);
 }
 
+bool StudentWorld::hitCheck(double x, double y, double radius, Actor* orig) {
+    queue<Actor*> p_overlaps = checkOverlap(x, y, radius, orig);
+    while(!p_overlaps.empty()) {
+        if(p_overlaps.front() != nullptr && p_overlaps.front()->isProjDamageable()) {
+            cerr << "hit" << p_overlaps.front()  << "|" << typeid(p_overlaps.front()).name() << endl;
+            p_overlaps.front()->setAliveStatus(false);
+            return true;
+        } else {
+            p_overlaps.pop();
+        }
+    }
+}
+
 queue<Actor*> StudentWorld::checkOverlap(double x, double y, double radius, Actor* orig) {
     queue<Actor*> overlaps;
     for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
@@ -117,4 +126,18 @@ queue<Actor*> StudentWorld::checkOverlap(double x, double y, double radius, Acto
             overlaps.push(a);
     }
     return overlaps;
+}
+
+template<class A>
+void StudentWorld::populate(int num) {
+    for(int i = 0; i < num; i++) {
+        int newX, newY;
+        do {
+            int r = randInt(0, 120);
+            int theta = randInt(0, 360);
+            newX = 128 + r * cos(theta * _PI/180);
+            newY = 128 + r * sin(theta * _PI/180);
+        } while (!checkOverlap(newX, newY, 2 * SPRITE_RADIUS, nullptr).empty());
+        m_actors.push_back(new A(newX, newY, this));
+    }
 }

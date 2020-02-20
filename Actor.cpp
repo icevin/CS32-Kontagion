@@ -168,8 +168,8 @@ void Dirt::onCollision(Actor* other) {
 //   MM        MM   `Mb.`Mb.    ,dP'(O)  MM    MM     ,M `Mb.     ,'      MM        MM    MM     ,M   MM     ,M 
 // .JMML.    .JMML. .JMM. `"bmmd"'   Ymmm9   .JMMmmmmMMM   `"bmmmd'     .JMML.    .JMML..JMMmmmmMMM .JMMmmmmMMM 
 
-Projectile::Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int lifeTime) 
-: Actor(imageID, startX, startY, world, dir, 1, 1, true), m_lifeTime(lifeTime)
+Projectile::Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int travelTime) 
+: Actor(imageID, startX, startY, world, dir, 1, 1, true), m_travelTime(travelTime)
 {
 
 }
@@ -181,23 +181,14 @@ Projectile::~Projectile() {
 void Projectile::doSomething() {
     if(!isAlive())
         return;
-    queue<Actor*> p_overlaps = getStudentWorld()->checkOverlap(getX(), getY(), SPRITE_RADIUS*2, this);
-    while(!p_overlaps.empty()) {
-        if(p_overlaps.front() != nullptr && p_overlaps.front()->isProjDamageable()) {
-            cerr << "hit" << p_overlaps.front()  << "|" << typeid(p_overlaps.front()).name() << endl;
-            p_overlaps.front()->setAliveStatus(false);
-            setAliveStatus(false);
-            return;
-        } else {
-            p_overlaps.pop();
-        }
+    if(getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS*2, this)) {
+        setAliveStatus(false);
+        return;
     }
     moveForward(SPRITE_RADIUS*2);
-    m_lifeTime -= SPRITE_RADIUS*2;
-    if(m_lifeTime < 0) {
+    m_travelTime -= SPRITE_RADIUS*2;
+    if(m_travelTime < 0) {
         Actor::setAliveStatus(false);
-        // cerr << "p overlap:" << getStudentWorld()->checkOverlap(120, 128, 8, nullptr) << endl;
-        // cerr << getX() << "|" << getY() << "|" << m_lifeTime << endl;
         return;
     }
 }
@@ -242,3 +233,65 @@ Spray::~Spray() {
 
 }
 
+// `7MM"""Mq.`7MM"""Mq.   .g8""8q. `7MM"""Mq.  .M"""bgd 
+//   MM   `MM. MM   `MM..dP'    `YM. MM   `MM.,MI    "Y 
+//   MM   ,M9  MM   ,M9 dM'      `MM MM   ,M9 `MMb.     
+//   MMmmdM9   MMmmdM9  MM        MM MMmmdM9    `YMMNq. 
+//   MM        MM  YM.  MM.      ,MP MM       .     `MM 
+//   MM        MM   `Mb.`Mb.    ,dP' MM       Mb     dM 
+// .JMML.    .JMML. .JMM. `"bmmd"' .JMML.     P"Ybmmd"  
+
+Prop::Prop(int imageID, double startX, double startY, StudentWorld* world, Direction dir)
+: Actor(imageID, startX, startY, world, dir, 1, 1, true)
+{
+
+}
+
+Prop::~Prop() {
+
+}
+
+void Prop::doSomething() {
+
+}
+
+// `7MM"""YMM   .g8""8q.     .g8""8q. `7MM"""Yb.   
+//   MM    `7 .dP'    `YM. .dP'    `YM. MM    `Yb. 
+//   MM   d   dM'      `MM dM'      `MM MM     `Mb 
+//   MM""MM   MM        MM MM        MM MM      MM 
+//   MM   Y   MM.      ,MP MM.      ,MP MM     ,MP 
+//   MM       `Mb.    ,dP' `Mb.    ,dP' MM    ,dP' 
+// .JMML.       `"bmmd"'     `"bmmd"' .JMMmmmdP'   
+
+Food::Food(double startX, double startY, StudentWorld* world) 
+: Prop(IID_FOOD, startX, startY, world, 90)
+{
+
+}
+
+Food::~Food() {
+
+}
+  
+//   .g8"""bgd    .g8""8q.     .g8""8q. `7MM"""Yb. `7MMF'`7MM"""YMM  
+// .dP'     `M  .dP'    `YM. .dP'    `YM. MM    `Yb. MM    MM    `7  
+// dM'       `  dM'      `MM dM'      `MM MM     `Mb MM    MM   d    
+// MM           MM        MM MM        MM MM      MM MM    MMmmMM    
+// MM.    `7MMF'MM.      ,MP MM.      ,MP MM     ,MP MM    MM   Y  , 
+// `Mb.     MM  `Mb.    ,dP' `Mb.    ,dP' MM    ,dP' MM    MM     ,M 
+//   `"bmmmdPY    `"bmmd"'     `"bmmd"' .JMMmmmdP' .JMML..JMMmmmmMMM 
+
+Goodie::Goodie(int imageID, double startX, double startY, StudentWorld* world, int lifeTime)
+: Actor(imageID, startX, startY, world, 0, 1, 1, true), m_lifeTime(lifeTime)
+{
+
+}
+
+Goodie::~Goodie() {
+
+}
+
+void Goodie::doSomething() {
+    if(!isAlive())
+        return;
+}

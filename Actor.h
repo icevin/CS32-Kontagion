@@ -5,6 +5,7 @@
 
 class StudentWorld;
 
+
 class Actor : public GraphObject {
     public:
         Actor(int imageID, double startX, double startY, StudentWorld* world, Direction dir = 0, int depth = 0, double size = 1.0, bool alive = true);
@@ -29,8 +30,6 @@ class Actor : public GraphObject {
 };
 
 
-
-
 class Socrates : public Actor {
     public:
         Socrates(StudentWorld* world);
@@ -50,8 +49,6 @@ class Socrates : public Actor {
 };
 
 
-
-
 class Dirt : public Actor {
     public:
         Dirt(double startX, double startY, StudentWorld* world);
@@ -63,22 +60,17 @@ class Dirt : public Actor {
 };
 
 
-
-
-/*              PROJECTILES             */
-
-
-
+// Projectiles
 
 class Projectile : public Actor {
     public:
-        Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int lifeTime);
+        Projectile(int imageID, double startX, double startY, StudentWorld* world, Direction dir, int travelTime);
         ~Projectile();
         void doSomething();
         void onCollision(Actor* other);                   // Apply effects to Actor
         bool isProjDamageable(){return false;};
     private:
-        int m_lifeTime;
+        int m_travelTime;
 };
 
 class Flame : public Projectile {
@@ -94,22 +86,53 @@ class Spray : public Projectile {
 };
 
 
-
-
-/*              PROPS               */
-
-
-
+// PROPS
+// Props don't move, and cannot be hit by projectiles. They may interact with bacteria. They are populated by StudentWorld::populate
+// Subclasses: Food, Pits
 
 class Prop : public Actor {
     public:
         Prop(int imageID, double startX, double startY, StudentWorld* world, Direction dir);
         ~Prop();
         virtual void doSomething();
-        
-        // Some props die in differnt ways than others
-        virtual bool isAlive();
         bool isProjDamageable() {return false;}
     private:
+};
+
+class Food : public Prop {
+    public:
+        Food(double startX, double startY, StudentWorld* world);
+        ~Food();
+};
+
+// class Pit :: public Prop {
+//     public:
+//         Pit()
+// }
+
+
+// Goodies
+// Goodies don't move, but can be hit by projectiles. They only affect Socrates.
+// Subclasses: Restore health goodies, flamethrower goodies, extra life goodies, fungi
+
+class Goodie : public Actor {
+    public:
+        Goodie(int imageID, double startX, double startY, StudentWorld* world, int lifeTime);
+        ~Goodie();
+        void doSomething();
+
+        bool isAlive() {
+            return m_lifeTime > 0;
+        }
+        void setAliveStatus(bool life) {
+            m_lifeTime = life ? m_lifeTime : 0;
+        };
+        bool isProjDamageable() {
+            return true;
+        };
+
+        virtual void onPickup() = 0;
+    private:
+        int m_lifeTime;
 };
 #endif // ACTOR_H_
