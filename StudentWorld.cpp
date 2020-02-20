@@ -38,16 +38,17 @@ int StudentWorld::init()
 
 
     // Add min(5 * L, 25) food objects to the Petri dish
-    populate<Food>(((5 * getLevel()) > 25) ? 25 : 5 * getLevel());
+    populate<Food>(min(5 * getLevel(), 25));
     
     // Add max(180 –20 * L, 20) dirt at random locations
-    populate<Dirt>((180 - (20 * getLevel()) < 20 ? 20 : (180 - 20 * getLevel())));
+    populate<Dirt>(max(180 - 20 * getLevel(), 20));
     
     return GWSTATUS_CONTINUE_GAME;
 }
 
 int StudentWorld::move()
 {
+    // Give Each Actor a Chance to Do Something
     queue<Actor*> dead_actors;
     m_socrates->doSomething();
     for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
@@ -68,6 +69,33 @@ int StudentWorld::move()
         }
     }
 
+    // Remove Dead Actors
+    m_actors.erase(remove(begin(m_actors), end(m_actors), nullptr), end(m_actors));
+    while(!dead_actors.empty()) {
+        if(dead_actors.front() != nullptr)
+            delete dead_actors.front();
+        dead_actors.pop();
+    }
+
+    int chanceFungus = max(510 - getLevel() * 10, 200);
+    int genF = randInt(0, chanceFungus - 1);
+    if(genF == 0) {      // Add fungus
+        addRadial<Fungus>();
+    }
+
+    int chanceGoodie = max(510 - getLevel() * 10, 250);
+    int genG = randInt(0, chanceGoodie - 1);
+    if(genG == 0) {
+        int gType = randInt(1, 10);
+        if(gType == 1)
+            addRadial<ExtraLifeGoodie>();
+        else if(gType < 4)
+            addRadial<FlameThrowerGoodie>();
+        else
+            addRadial<HealthGoodie>();
+    }
+
+    // Update Stat Text
     ostringstream titleText;
     titleText << setw(5) << "Score: " << setfill('0') << setw(6) << getScore() <<setfill(' ');
     titleText <<  "  Level: " << setw(2) << getLevel();
@@ -78,12 +106,6 @@ int StudentWorld::move()
 
     setGameStatText(titleText.str());    
 
-    m_actors.erase(remove(begin(m_actors), end(m_actors), nullptr), end(m_actors));
-    while(!dead_actors.empty()) {
-        if(dead_actors.front() != nullptr)
-            delete dead_actors.front();
-        dead_actors.pop();
-    }
     return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -122,6 +144,18 @@ bool StudentWorld::socCheck(double x, double y, double radius) {
             );
 }
 
+void StudentWorld::hurtSoc(int amt) {
+    m_socrates->setHealth(m_socrates->getHealth() - amt);
+}
+
+void StudentWorld::healSoc() {
+    m_socrates->setHealth(100);
+}
+
+void StudentWorld::addCharges(int amt) {
+    m_socrates->addFCharges(amt);
+}
+
 queue<Actor*> StudentWorld::checkOverlap(double x, double y, double radius, Actor* orig) {
     queue<Actor*> overlaps;
     for(auto i = m_actors.begin(); i != m_actors.end(); i++) {
@@ -146,9 +180,19 @@ void StudentWorld::populate(int num) {
         do {
             int r = randInt(0, 120);
             int theta = randInt(0, 360);
-            newX = 128 + r * cos(theta * _PI/180);
-            newY = 128 + r * sin(theta * _PI/180);
+            newX = (VIEW_WIDTH/2) + r * cos(theta * _PI/180);
+            newY = (VIEW_HEIGHT/2) + r * sin(theta * _PI/180);
         } while (!checkOverlap(newX, newY, 2 * SPRITE_RADIUS, nullptr).empty());
-        m_actors.push_back(new A(newX, newY, this));
+        addActor(new A(newX, newY, this));
     }
+}
+
+template<class A>
+void StudentWorld::addRadial() {
+    int theta = randInt(0, 360);
+    addActor(new A(
+        (VIEW_WIDTH/2) + VIEW_RADIUS * cos(theta * _PI/180), 
+        (VIEW_HEIGHT/2) + VIEW_RADIUS * sin(theta * _PI/180), 
+        this
+    ));
 }

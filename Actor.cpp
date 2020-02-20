@@ -1,5 +1,6 @@
 #include "Actor.h"
 
+#include <algorithm>
 #include <vector>
 #include <queue>
 #include <typeinfo>
@@ -124,6 +125,14 @@ void Socrates::doSomething() {
         }
     } else if (m_sprayCharges < 20)
         m_sprayCharges++;
+}
+
+void Socrates::setHealth(int health)  {
+    if(health < m_health && health > 0)
+        getStudentWorld()->playSound(SOUND_PLAYER_HURT);
+    m_health = health;
+    if(m_health <= 0)
+        getStudentWorld()->playSound(SOUND_PLAYER_DIE);
 }
 
 void Socrates::moveAlongCircle(int theta) {
@@ -281,8 +290,8 @@ Food::~Food() {
 // `Mb.     MM  `Mb.    ,dP' `Mb.    ,dP' MM    ,dP' MM    MM     ,M 
 //   `"bmmmdPY    `"bmmd"'     `"bmmd"' .JMMmmmdP' .JMML..JMMmmmmMMM 
 
-Goodie::Goodie(int imageID, double startX, double startY, StudentWorld* world, int lifeTime)
-: Actor(imageID, startX, startY, world, 0, 1, 1, true), m_lifeTime(lifeTime)
+Goodie::Goodie(int imageID, double startX, double startY, StudentWorld* world)
+: Actor(imageID, startX, startY, world, 0, 1, 1, true), m_lifeTime(max(randInt(0, 300 - 10 * world->getLevel() - 1), 50))
 {
 
 }
@@ -294,4 +303,82 @@ Goodie::~Goodie() {
 void Goodie::doSomething() {
     if(!isAlive())
         return;
+    if(getStudentWorld()->socCheck(getX(), getY(), SPRITE_WIDTH)) {
+        onPickup();
+        setAliveStatus(false);
+        return;
+    }
+    if(--m_lifeTime <= 0)
+        setAliveStatus(false);
+}
+
+// Health Goodie
+
+HealthGoodie::HealthGoodie(double startX, double startY, StudentWorld* world) 
+: Goodie(IID_RESTORE_HEALTH_GOODIE, startX, startY, world) {
+
+}
+
+HealthGoodie::~HealthGoodie() {
+
+}
+
+void HealthGoodie::onPickup() {
+    getStudentWorld()->increaseScore(250);
+    getStudentWorld()->playSound(SOUND_GOT_GOODIE);
+    getStudentWorld()->healSoc();
+    setAliveStatus(false);
+}
+
+// Flame Thrower Goodie
+
+FlameThrowerGoodie::FlameThrowerGoodie(double startX, double startY, StudentWorld* world)
+: Goodie(IID_FLAME_THROWER_GOODIE, startX, startY, world) {
+
+}
+
+FlameThrowerGoodie::~FlameThrowerGoodie() {
+
+}
+
+void FlameThrowerGoodie::onPickup() {
+    getStudentWorld()->increaseScore(300);
+    getStudentWorld()->playSound(SOUND_GOT_GOODIE);
+    getStudentWorld()->addCharges(5);
+    setAliveStatus(false);
+}
+
+//Extra Life Goodie
+
+ExtraLifeGoodie::ExtraLifeGoodie(double startX, double startY, StudentWorld* world)
+: Goodie(IID_EXTRA_LIFE_GOODIE, startX, startY, world) {
+
+}
+
+ExtraLifeGoodie::~ExtraLifeGoodie() {
+
+}
+
+void ExtraLifeGoodie::onPickup() {
+    getStudentWorld()->increaseScore(500);
+    getStudentWorld()->playSound(SOUND_GOT_GOODIE);
+    getStudentWorld()->incLives();
+    setAliveStatus(false);
+}
+
+//
+
+Fungus::Fungus(double startX, double startY, StudentWorld* world)
+: Goodie(IID_FUNGUS, startX, startY, world) {
+
+}
+
+Fungus::~Fungus() {
+
+}
+
+void Fungus::onPickup() {
+    getStudentWorld()->increaseScore(-50);
+    getStudentWorld()->hurtSoc(20);
+    setAliveStatus(false); 
 }

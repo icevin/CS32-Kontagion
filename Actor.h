@@ -45,9 +45,7 @@ class Socrates : public Actor {
         int getHealth() {
             return m_health;
         }
-        void setHealth(int health) {
-            m_health = health;
-        }
+        void setHealth(int health);
         int getSCharges() {
             return m_sprayCharges;
         }
@@ -133,7 +131,7 @@ class Food : public Prop {
 
 class Goodie : public Actor {
     public:
-        Goodie(int imageID, double startX, double startY, StudentWorld* world, int lifeTime);
+        Goodie(int imageID, double startX, double startY, StudentWorld* world);
         ~Goodie();
         void doSomething();
 
@@ -150,5 +148,33 @@ class Goodie : public Actor {
         virtual void onPickup() = 0;
     private:
         int m_lifeTime;
+};
+
+class HealthGoodie : public Goodie {
+    public:
+        HealthGoodie(double startX, double startY, StudentWorld* world);
+        ~HealthGoodie();
+        void onPickup();
+};
+
+class FlameThrowerGoodie : public Goodie {
+    public:
+        FlameThrowerGoodie(double startX, double startY, StudentWorld* world);
+        ~FlameThrowerGoodie();
+        void onPickup();
+};
+
+class ExtraLifeGoodie : public Goodie {
+    public:
+        ExtraLifeGoodie(double startX, double startY, StudentWorld* world);
+        ~ExtraLifeGoodie();
+        void onPickup();
+};
+
+class Fungus : public Goodie {
+    public:
+        Fungus(double startX, double startY, StudentWorld* world);
+        ~Fungus();
+        void onPickup();
 };
 #endif // ACTOR_H_

@@ -17,8 +17,12 @@ class StudentWorld : public GameWorld
         virtual int move();
         virtual void cleanUp();
         void addActor(Actor* a);
+
+        void spawnGoodies();
+
         bool hitCheck(double x, double y, double radius, Actor* orig);
         bool socCheck(double x, double y, double radius);
+
         void hurtSoc(int amt);
         void healSoc();
         void addCharges(int amt);
@@ -26,6 +30,7 @@ class StudentWorld : public GameWorld
         std::vector<Actor*> m_actors;
         std::queue<Actor*> checkOverlap(double x, double y, double radius, Actor* orig);
         template<class A> void populate(int num);
+        template<class A> void addRadial();
         
         Socrates* m_socrates;
         int m_level;
