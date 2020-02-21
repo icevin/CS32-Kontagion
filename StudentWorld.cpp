@@ -253,7 +253,7 @@ void StudentWorld::addRadial() {
 
 double StudentWorld::getDistance(Actor* a, Actor* b) {
     return sqrt(
-                pow(double(b->getX() - a->getX()), 2.0) + 
-                pow(double(b->getY() - a->getY()), 2.0)
-            );
+        pow(double(b->getX() - a->getX()), 2.0) + 
+        pow(double(b->getY() - a->getY()), 2.0)
+    );
 }

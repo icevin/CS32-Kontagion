@@ -608,7 +608,7 @@ EColi::~EColi() {
 void EColi::move() {
     if(getStudentWorld()->distToSoc(getX(), getY()) <= 256) {
         int theta = getStudentWorld()->dirToSoc(getX(), getY());
-        for (int i = 0; i < 10 && !tryMove(theta, 3); i++, theta += 10)
+        for (int i = 0; i < 10 && !tryMove(theta, 2); i++, theta += 10)
             if(theta + 10 >= 360)
                 theta -= 360;
     }
