@@ -12,25 +12,24 @@ class StudentWorld : public GameWorld {
   public:
     StudentWorld(std::string assetPath);
     ~StudentWorld();
-    virtual int init();
-    virtual int move();
-    virtual void cleanUp();
+    int init();
+    int move();
+    void cleanUp();
 
     void addActor(Actor* a);
-    void incEnemies() { m_nEnemies++; };
-    void decEnemies() { m_nEnemies--; };
+    void incEnemies() { m_nEnemies++; }
+    void decEnemies() { m_nEnemies--; }
 
     bool hitCheck(double x, double y, double radius, Actor* orig, bool destructive = false, int hitFor = 0);
     bool findClosestFood(double& x, double& y, double radius, Actor* orig, bool destructive = false);
 
-    double distToSoc(double x, double y);
-    Direction dirToSoc(double x, double y);
+    double distToSoc(double fromX, double fromY);
+    Direction dirToSoc(double fromX, double fromY);
     Direction directionTo(double fromX, double fromY, double toX, double toY);  // Helper function
 
     void hurtSoc(int amt);
     void healSoc();
     void addCharges(int amt);
-
   private:
     std::vector<Actor*> m_actors;
     std::queue<Actor*> checkOverlap(double x, double y, double radius, Actor* orig);

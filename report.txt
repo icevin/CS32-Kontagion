@@ -1,0 +1,380 @@
+CS32 W2020 Project 3: Kontagion
+Kevin Tang
+#805419480
+
+1. High Level Member Function Descriptions:
+    ~ Actor.h / Actor.cpp ~
+
+        class Actor (subclass of GraphObject):
+            - Actor() (constructor parameters are ommitted to save space)
+                Initializes an Actor with an imageID, as well as its starting position, size, direction, and depth, a pointer to its current StudentWorld, and a "true" (alive) status.
+            - virtual ~Actor()
+                Actor's destructor is empty, but virtual in case we need to destruct differently in subclasses.
+            - virtual void doSomething() = 0
+                Actor's doSomething() is pure virtual, as all Actors in Kontagion will have different doSomething()'s. A base Actor should never exist, so it will never doSomething().
+            - virtual bool isAlive()
+                All actors can live and die. For now, this simply returns m_living, a variable that holds the Actor's life status.
+                The function is virtual so that more complex methods of determining life in subclasses can be made.
+            - virtual void setAliveStatus()
+                Sets an actor's alive status. See above
+                The function is virtual so that more complex methods of setting the alive status may be implemented in subclasses.
+            - virtual void hurt(int amt)
+                If amt is >0, kill (set alive status to false) the actor.
+                The function is virtual so that more complex methods of killing the actor (non-binary) may be implemented in subclasses.
+            - virtual bool isProjDamageable()
+                The function returns false, indicating that by default, actors are not damageable by projectiles. However, it is virtual so that subclasses may override this behavior.
+            - virtual bool hasHP()
+                The function returns false, indicating that by default, actors do not have HP. However, it is virtual so that subclasses may override this behavior.
+            - virtual bool blocksMovement
+                The function returns false, indicating that by default, actors do not block movement. However, it is virtual so that subclasses may override this behavior.
+            - virtual bool isEdible
+                The function returns false, indicating that by default, actors are not edible. However, it is virtual so that subclasses may override this behavior.
+            - StudentWorld* getStudentWorld()
+                Returns a pointer to the StudentWorld that the Actor resides in. This function should never need to be overriden, so it is not virtual.
+
+        class Diva (subclass of Actor): (ABC) (A Diva is an Actor that has hitpoints)
+            - Diva() (constructor parameters are ommitted to save space)
+                Initializes the Actor object, using the same parameteters as the Actor object.
+            - virtual ~Diva()
+                Empty destructor that may be implemented with different behavior in subclasses
+            - virtual void doSomething() = 0
+                A pure Diva should not exist as it is an ABC, so its' doSomething is pure virtual.
+            - bool isAlive()
+                Overrides the Actor doAlive() function to instead return if the object has > 0 hitpoints.
+            - void setAliveStatus
+                If passed false: sets hitpoints to 0, otherwise, do nothing.
+            - int getHealth()
+                Accessor for hitpoints variable
+            - void setHealth()
+                Mutator for hitpoints variable. Manages/calls onHurt & onDeath events (see below)
+            - void hurt()
+                Wrapper for setHealth, decreases health
+            - virtual void onHurt() = 0
+                Pure virtual function, as subclasses must define what happens when they are hurt (e.g. playing a sound)
+            - virtual void onDeath() = 0
+                Pure virtual function, as subclasses must define what happens when they die (e.g. playing a sound)
+        
+            class Socrates (subclass of Diva)
+                - Socrates(StudentWorld)
+                    Initializes Socrates at default starting coordinates, with appropriate imageID and attributes, and a pointer to his StudentWorld
+                - void doSomething()
+                    Checks if Socrates is a live, returns if he is not
+                    Gets keypress from StudentWorld, and:
+                        - Moves if movement keys are pressed, or
+                        - Creates new Projectile objects and adds them to the StudentWorld if fire keys are pressed, or
+                        - Otherwise, replenishes spray charges as per spec
+                - int getSCharges()
+                    Accessor for amount of spray charges. Used by StudentWorld to display remaining charges
+                - int getFCharges()
+                    Access for amount fo fire chrages. Used by StudentWorld to display remaining charges
+                - void addFCharges(int amount)
+                    Increasses fire charges by an amount. Used by Flamethrower goodie
+                - void onHurt()
+                    Plays hurt sound
+                - void onDeath()
+                    Plays death sound
+            
+            class Bacteria (subclass of Diva) (ABC)
+                - Bacteria() (constructor parameters are ommitted to save space)
+                    Initializes Bacteria with parameter specified imageID, starting position, health and StudentWorld, with spec-specified direction and depth.
+                - ~Bacteria()
+                    Tells StudentWorld that an enemy died
+                - bool tryMove(Direction, Units) (protected)
+                    Helper function - returns true and moves in a Direction a certain number of Units if it can, return false and do nothing if it would overlap with something.
+                - void doSomething()
+                    Executes all generic bacteria behavior, as per spec. This includes:
+                        Returning immediately if not alive
+                        Executes generic member function aggressiveBehavior() and stores the result
+                        Executes generic member function onOverlap() if overlapping with Socrates, otherwise:
+                        Spawns new Bacteria of the same type using spawnNew() if eaten enough food
+                        Increases food eaten count if overlapping with food
+                        Executes generic member function move(), if aggressiveBehavior() from above returned false
+                - virtual bool aggressiveBehavior() (protected)
+                    Returns false. By default, bacteria have no aggressive behavior. Returning false tells doSomething() to move the Bacteria regularly.
+                - virtual void move() (protected)
+                - virtual void spawnNew(x, y) (protected)
+                - virtual void onOverlap() (protected)
+                    All of the above are pure virtual member functions that represents differentiated behavior that must be implemented by Bacteria subclasses. See doSomething()
+                    Bacteria subclasses move differently, spawn different types of new Bacteria, and do different things when they overlap with Socrates.
+                - virtual void onHurt()
+                    Bacteria subclasses play different sounds when they are hurt, so this function is pure virtual.
+                - virtual void uniqueOnDeath()
+                    Bacteria subclasses play different sounds on death, so this function is pure virtual.
+            
+                class Salmonella (subclass of Bacteria)
+                    - Salmonella(x, y, world, hp = 4)
+                        Initializes Salmonella with proper imageID and specified starting position, StudentWorld, and health. Health is passed as a parameter, but has a default value of 4.
+                    - void move()
+                        Moves Salmonella according to spec:
+                            if movement_plan > 0
+                                decrease movement_plan,
+                                tryMove():
+                                    if unsuccessful, face a random directiona dn reset movement_plan to 10,
+                            otherwise,
+                                find closest food and try to move towards it,
+                                if there are no food nearby or the move is unsuccessful, face a random direction and reset movement_plan to 10
+                    - bool aggressiveBehavior()
+                        returns false (telling Bacteria::doSomething to move regularly), regular salmonella have no aggressive behavior.
+                    - void onOverlap()
+                        Damages Socrates by 1hp.
+                    - void spawnNew(x, y)
+                        Spawn new salmonella at (x,y), with a pointer to our StudentWorld().
+
+                        class AggressiveSalmonella
+                            - AggressiveSalmonella(x, y, world)
+                                Initializes Salmonella with proper imageID and specified starting position, and StudentWorld. Starts with 10 hitpoints.
+                            - bool aggressiveBehavior() (protected)
+                                If within 72 pixels of Socrates, try to move towards him and return true (don't move regularly)
+                                Otherwise, return false (move regularly)
+                            - void onOverlap() (protected)
+                                Damages Socrates by 2hp.
+                            - void spawnNew(x, y) (protected)
+                                Spawn new AggressiveSalmonella at (x,y), with a pointer to our StudentWorld().
+                        
+                class Ecoli (subclass of Bacteria)
+                    - Ecoli(x, y, world)
+                        Initializes Ecoli with proper imageID and specified starting position, in a StudentWorld. Starts with 5hp.
+                    - void move() (protected)
+                        If the distance to socrates is less than or equal to 256:
+                            Get the direction to Socrates, and try to move torwards him 10 times, increasing the angle by 10 degrees if we fail.
+                    - void onHurt() (protected)
+                        Plays EColi-specific hurt sound
+                    - void uniqueOnDeath() (protected)
+                        Plays EColi-specific death sound
+                    - void onOverlap() (protected)
+                        Hurts Socrates by 4 hp
+                    - void spawnNew(x, y) (protected)
+                        Spawn new EColi at (x,y), with a pointer to our StudentWorld().
+
+        class Dirt (subclass of Actor)
+            - Dirt(x, y, world)
+                Initializes dirt with proper imageID, depth, and direction, at a position (x,y) in world (world).
+            - void doSomething()
+                Does nothing.
+            - bool isProjDamageable()
+                Dirt can be damaged by projectiles, so this returns true, overriding behavior from Actor::isProjDamageable().
+            - bool blocksMovement()
+                Dirt blocks bacteria movement, so this returns true, overriding behavior from Actor::blocksMovement().
+
+        class Projectile (subclass of Actor) (ABC)
+            - Projectile(imageID, x, y, world, dir, travelTime)
+                Initializes Actor with imageID, starting location, world, and direction. See doSomething()
+                Initializes m_travelTime to specified value.
+            - void doSomething()
+                If the projectile is not alive, do nothing.
+                If checkHit() returns true, set our own alive status to false, and return.
+                Otherwise, move forward by SPRITE_RADIUS * 2 and decrease that amount from m_travelTime.
+                If m_travelTime becomes negative, set our alive status to false and return.
+            - bool checkHit() (protected)
+                Return true and perform on-hit effects if the projectile overlaps with a projectile-damageable Actor.
+                Projectiles have different effects on-hit, so this function is pure virtual.
+
+            class Flame (subclass of Projectile)
+                - Flame(x, y, world)
+                    Initializes Projectile with proper flame imageID, at position (x,y) in our world with a traveltime of 32
+                - bool checkHit()
+                    Prompt our StudentWorld to check for an overlap at our current (x,y). If it finds one, tell it to damage the overlapping Actor with 5 points of damage.
+                    Return whether or not the StudentWorld found an overlap.
+            
+            class Spray (subclass of Projectile)
+                - Spray(x, y, world)
+                    Initializes Projectile with proper spray imageID, at position (x,y) in our world with a traveltime of 112
+                - bool checkHit()
+                    Prompt our StudentWorld to check for an overlap at our current (x,y). If it finds one, tell it to damage the overlapping Actor with 2 points of damage.
+                    Return whether or not the StudentWorld found an overlap.
+
+        class Food (subclass of Actor)
+            - Food(x, y, world)
+                Initializes Actor with food imageID, position (x,y), a pointer to our current world, direction=90, depth = 1, and alive = true.
+            - void doSomething()
+                Does nothing.
+            - bool isEdible()
+                Returns true - food is edible
+            
+        class Pit (subclass of Actor)
+            - Pit(x, y, world)
+                Initializes Actor with pit imageID, position (x,y), a pointer to our current world, direction=0, depth = 1, and alive = true.
+                Initializes our inventory to have 5 regular salmonella, 3 aggressive salmonella, and 2 EColi.
+            - ~Pit()
+                Tells our StudentWorld that we finished creating bacteria, and as such, the number of enemies has decreased by one.
+            - void doSomething()
+                If our inventory is empty, set our alive status to false.
+                If a random integer between 1 and 50 is equal to 1 (1 in 50 chance):
+                    Choose a random type of bacteria
+                    Add one of that type of bacteria to our StudentWorld at the current (x,y) coordinates
+                    Update our inventory, and play the bacteria "born" sound.
+        
+        class Goodie (subclass of Actor) (ABC)
+            - Goodie(imageID, x, y, world)
+                Initializes Actor with specified imageID, position (x,y), a pointer to our world, a direction of 0 degrees, a depth of 1, and alive = true.
+                Also initializes m_lifeTime to a random value according to the formula described in the spec.
+            - void doSomething()
+                If the goodie is not alive, return.
+                If the goodie overlaps with Socrates, call onPickup(), set our alive status to false, and return.
+                Decrement our lifetime. If it's less than or equal to 0, set our alive status to false.
+            - bool isAlive()
+                Return if the lifetime is greater than 0.
+            - void setAliveStatus(bool life)
+                Set lifeTime to 0 if life is false.
+            - bool isProjDamageable()
+                True - all goodies can be damaged by projectiles.
+            - virtual void onPickUp() = 0 (protected)
+                Goodies do different things when they are picked up, but a default Goodie has no implementation, so this function is pure virutal.
+
+            class HealthGoodie (subclass of Goodie)
+                - HealthGoodie(x, y, world)
+                    Initializes goodie with Health Goodie imageID, at (x,y) in world
+                - void onPickup() (protected)
+                    Prompts the StudentWorld to play the Goodie pickup sound, increase score by 250, and heal Socrates.
+                
+            class FlameThrowerGoodie (subclass of Goodie)
+                - FlameThrowerGoodie(x, y, world)
+                    Initializes goodie with FlameThrowerGoodie imageID, at (x,y) in world
+                - void onPickup() (protected)
+                    Prompts the StudentWorld to play the Goodie pickup sound, increase score by 300, and add 5 flame charges.    
+                
+            class ExtraLifeGoodie (subclass of Goodie)
+                - ExtraLifeGoodie(x, y, world)
+                    Initializes goodie with ExtraLifeGoodie imageID, at (x,y) in world
+                - void onPickup() (protected)
+                    Prompts the StudentWorld to play the Goodie pickup sound, increase score by 500, and increment the number of lives.
+
+            class Fungus (subclass of Goodie)
+                - Fungus(x, y, world)
+                    Initializes goodie with FungusimageID, at (x,y) in world
+                - void onPickup() (protected)
+                    Prompts the StudentWorld to decrease the score by 50 and hurt Socrates by 20 hitpoints.
+
+    ~ StudentWorld.h / StudentWorld.cpp ~
+        class StudentWorld (subclass of Gameworld)
+            - StudentWorld(string assetPath)
+                Initializes GameWorld with assetPath
+                Sets the number of enemies to 0
+            - ~StudentWorld()
+                Calls cleanUp(), see cleanUp()
+            - int init()
+                Creates and adds a new Socrates object at the starting location (0, VIEW_HEIGHT/2)
+                Add L pits at rnadom locations in the petri dish
+                Add min(5 * L, 25) food objects at random locations in the Petri dish
+                Add max(180 –20 * L, 20) dirt objects at random locations in the Petri dish
+                return the CONTINUE_GAME signal (GWSTATUS_CONTINUE_GAME)
+            - int move()
+                Tell Socrates to do something.
+                Iterate through our vector of actors and tell each living actor to do something.
+                    If Socrates dies, decrease the number of lives and return the player died signal (GWSTATUS_PLAYER_DIED)
+                    If our current actor dies, push a pointer to that actor to our dead actors queue, and set the pointer in the vector to nullptr.
+                    If we defeat all enemies, return the finished level signal (GWSTATUS_FINISHED_LEVEL)
+                If we find a non-living actor pointer, set the pointer to nullptr and push the Actor onto our queue of dead actors.
+                Erase all nullptrs from our actor vector, and delete all actors in our queue of dead actors.
+                Potentially add goodies using the algorithm described in the spec.
+                Update the Stat Text at the top of the screen using a stringstream.
+                Return the continue game signal (GWSTATUS_CONTINUE_GAME)
+            - void cleanUp()
+                Delete all pointers in our vector of actors.
+                Clear our vector of actors.
+                If Socrates has not been deleted, delete him as well
+            - void addActor(Actor* a)
+                Push back a to our vector of actors.
+            - bool hitCheck(x, y, radius, Actor* orig, bool destructive, int damage)
+                We get a queue of Actors that are not orig that overlap (x,y) within <radius> from private member function checkOverlap().
+                    If (destructive), then either hurt or kill the first damageable actor in the queue, popping until we find one.
+                    Otherwise, return true if we find any actor in the queue that blocks movement.
+            - bool findClosestFood(&x, &y, radius, orig, destructive)
+                We use a map<double, Actor*> named menu.
+                We get a queue of Actors that are not orig that overlap (x,y) within <radius> from private member function checkOverlap().
+                Edible objects in the queue are added to the menu, with their distance to (x,y) as the first value and the pointer as the second value.
+                We use the property of Maps that they are automatically sorted by their first value to get the food with the shortest distance away from (x,y).
+                    NOTE: If two food objects are exactly the same distance away, then one of the pointers will be lost. However, since we needed to choose between the two anyways, this is fine.
+                    If(destructive), we kill the food object and return true.
+                    Otherwise, we set x and y to the location of the food object and return true
+                We return false if we do not find any food objects.
+            - double distToSoc(x, y)
+                Return the distance from (x,y) to Socrates.
+            - Direction dirToSoc(double x, y)
+                Return the direction from (x,y) to Socrates. Uses directionTo()
+            - Direction directionTo(fromX, fromY, toX, toY)
+                Return the direction from (fromX, fromY) to (toX, toY) using atan2 (<cmath>).
+            - void hurtSoc(amt)
+                Damage Socrates by amt.
+            - void healSoc()
+                Reset Socrates' health to 100.
+            - void addCharges(amt)
+                Add amt fire charges to Socrates' inventory.
+                
+2. Known bugs
+    - Around about level 40, the game crashes when too many Bacteria begin to damage Socrates at the same time (assuming he does not die before then).
+
+3. Other Design Decisions/Assumptions
+    On page 8 of the spec, it is state that: "Food, pits, and fungi are impervious to these projectiles; the projectileswill simply pass over them."
+    However, all other references to Fungi state that they can be damaged, and this is the assumption that was followed.
+
+4. Class Testing:
+    class Actor:
+        Since Actor is an abstract base class, I tested Actor by testing the functionality of its derived subclasses.
+        For all Actors, I would make sure that their imageID and direction are appropriate when they are constructed.
+    class Dirt:
+        There are three main behaviors of Dirt that needed to be tested: 
+            1) the population of the Petri dish with dirt
+            2) interaction with projectiles
+            3) interaction with bacteria
+            1) will be covered in the testing of StudentWorld.
+            To test interaction with projectiles, I simply played the game, and made sure that both flames and spray would interact with Dirt and that both the projectile and the Dirt would be deleted when they collide with each other.
+            To test interaction with bacteria, I modified StudentWorld::init() to put Bacteria within a box of strategically placed Dirt. I confirmed that the Dirt would successfully stop all types of Bacteria movement: moving twoards Food, random movement, AggressiveSalmonella pathing towards the player, and EColi pathing towards the player.
+    class Projectile:
+        Projectile is an abstract base class, see Actor.
+        I did test that each Projectile traveled the correct distance, by stepping frame-by-frame and seeing when the Projectile disappeared (after the appropriate number of ticks).
+    class Flame:
+        There are three behaviors of Flame that I expected and tested:
+        1) Generation of flame in a circle around Socrates
+        2) Appropriately removing dirt
+        3) Appropriately damaging Goodies and Bacteria
+        1) is covered under the Socrates class. I tested 2) by manually playing the game and making sure that dirt is removed.
+        I tested 3) by having both Bacteria and Goodies outputting to stderr when they are damaged, and making sure that they disappeared after the appropriate amount of flame collisions.
+    class Spray:
+        There are three behaviors of Spray that I expected and tested:
+        1) Generation of spray in front of Socrates
+        2) Appropriate regeneration of spray charges
+        3) Appropriately removing dirt
+        4) Appropriately damaging Goodies and Bacteria
+        1) and 2) is covered under the testing for the Socrates class. I tested 3) by manually playing the game and making sure that dirt is removed.
+        I tested 4) by having both Bacteria and Goodies outputting to stderr when they are damaged, and making sure that they disappeared after the appropriate amount of spray collisions.
+    class Food:
+        There are three behaviors of food that I tested:
+        1) Generation of Food in the Petri dish
+        2) Bacteria pathing towards food
+        3) Food being removed when overlapping with Bacteria
+        1) is covered under the testing of the StudentWorld class, and 2) is covered under the testing of the Bacteria class. I tested 3) by placing one food and one Regular Salmonella relatively close to each other in the petri dish, and confirming that the food disappeared when the Salmonella overlapped with it.
+    class Pit:
+        Pits need to dispense the appropriate number of each type of Bacteria, and disappear after they are empty. I tested this by populating the petri dish with only one Pit, and temporarily made Socrates' health very high so that I could wait for all the Bacteria to spawn. After they spawned, I used the freeze functionality to freeze the game and confirm that the appropriate number of bacteria were spawne and the pit disappeared.
+    class Goodie:
+        Goodie is an abstract base class, see Actor.
+    class HealthGoodie:
+        I didn't spawn anything in the petri dish, set Socrates' health to 50, and waited for a HealthGoodie to spawn. I confirmed that if I moved Socrates near it, it would be destroyed and I would gain the appropriate amount of Health and points, as well as play the appropriate sound.
+    class FlameThrowerGoodie:
+        I didn't spawn anything in the petri dish and waited for a FlameThrowerGoodie to spawn. I confirmed that if I moved Socrates near it, it would be destroyed and I would gain the appropriate amount of flamethrower charges and points, as well as play the appropriate sound.   
+    class ExtraLifeGoodie:
+        I didn't spawn anything in the petri dish and waited for a ExtraLifeGoodie to spawn. I confirmed that if I moved Socrates near it, it would be destroyed and I would gain the appropriate amount of lives and points, as well as play the appropriate sound.  
+    class Fungus:
+        I didn't spawn anything in the petri dish and waited for a Fungus to spawn. I confirmed that if I moved Socrates near it, it would be destroyed and I would lose the appropriate amount of health and points.
+    class Diva:
+        Diva is an abstract base class, see Actor.
+    class Socrates:
+        There are a few behaviors of Socrates that I expected to see and tested:
+            1) Socrates moves around the circle appropriately, moving 5 degrees each time (and returning to the same position after 72 movements).
+                I also tested for A/D control in addition to arrow key control.
+            2) Socrates appropriately generates Flame charges in a circle around him.
+                I tested this by freezing the game after I pressed the button, and confirming that the correct number of flame charges were produced.
+            3) Socrates appropriately generates Spray in front of him.
+                I tested this by freezing the game after I pressed the button to shoot Spray, and confirming that Dirt/bacteria directly in front of Socrates would be destroyed/hurt.
+    class Bacteria:
+        Bacteria is an abstract base class, see Actor.
+        However, there is shared behavior among all bacteria, for example, I tested collision with Dirt as described above in the Dirt class.
+        I also tested that Projectiles would appropriately damage the bacteria, potentially killing it and playing the appropriate death sound cue.
+    class Salmonella:
+        I tested pathing towards food by placing one regular Salmonella and a few Food objects in an empty Petri dish. I made sure that the Salmonella would appropriately path towards the food, remove the food, and spawn new Salmonella when 3 were eaten.
+    class AggressiveSalmonella:
+        I tested aggressive Salmonella movement by placing one AggressiveSalmonella in the petri dish, and ensuring that the AggressiveSalmonella follows Socrates once Socrates gets within range of it, and stops following once Socrates moves out of range.
+    class EColi:
+        I tested EColi in a similar fashion to AggressiveSalmonella, placing one EColi bacteria and ensuring that it followed Socrates, but that it can be blocked by Dirt.
+    class StudentWorld:
+        I tested the init function by visually inspecting the petri dish to ensure that no Food, Pits, and Dirt overlapped each other. I visually compared the StatText with the StatText with the example, including cases where it becomes negative. I tested the cleanUp function by progressing through several levels, and ensuring that nothing like previous Socrates' or other actors persisted between levels. I tested move() by ensuring that Socrates and all other actors had the opportunity to doSomething().

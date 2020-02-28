@@ -34,9 +34,6 @@ Actor::Actor(int imageID, double startX, double startY, StudentWorld* world, Dir
 Actor::~Actor() {
 }
 
-void Actor::doSomething() {
-}
-
 void Actor::setAliveStatus(bool life) {
     m_living = life;
 }
@@ -59,7 +56,7 @@ bool Diva::isAlive() {
 }
 
 void Diva::setHealth(int health) {
-    if (health < m_health && health > 0)
+    if (health < m_health && health > 0)    // If health decreases, run onHurt(), if health becomes negative, run onDeath()
         onHurt();
     m_health = health;
     if (m_health <= 0)
@@ -68,89 +65,6 @@ void Diva::setHealth(int health) {
 
 void Diva::hurt(int amt) {
     setHealth(m_health - amt);
-}
-
-//  .M"""bgd   .g8""8q.     .g8"""bgd `7MM"""Mq.        db   MMP""MM""YMM `7MM"""YMM   .M"""bgd
-// ,MI    "Y .dP'    `YM. .dP'     `M   MM   `MM.      ;MM:  P'   MM   `7   MM    `7  ,MI    "Y
-// `MMb.     dM'      `MM dM'       `   MM   ,M9      ,V^MM.      MM        MM   d    `MMb.
-//   `YMMNq. MM        MM MM            MMmmdM9      ,M  `MM      MM        MMmmMM      `YMMNq.
-// .     `MM MM.      ,MP MM.           MM  YM.      AbmmmqMA     MM        MM   Y  , .     `MM
-// Mb     dM `Mb.    ,dP' `Mb.     ,'   MM   `Mb.   A'     VML    MM        MM     ,M Mb     dM
-// P"Ybmmd"    `"bmmd"'     `"bmmmd'  .JMML. .JMM..AMA.   .AMMA..JMML.    .JMMmmmmMMM P"Ybmmd"
-
-Socrates::Socrates(StudentWorld* world)
-    : Diva(IID_PLAYER, 0, VIEW_HEIGHT / 2, world, 0, 100), m_sprayCharges(20), m_flameCharges(5) {
-}
-
-Socrates::~Socrates() {
-}
-
-void Socrates::doSomething() {
-    // Check if Socrates is alive:
-    if (!isAlive())
-        return;
-
-    // Get keypress:
-    int keyPress = 0;
-    if (getStudentWorld()->getKey(keyPress)) {
-        switch (keyPress) {
-            case KEY_PRESS_LEFT:
-            case 'a':
-                moveAlongCircle(5);
-                break;
-            case KEY_PRESS_RIGHT:
-            case 'd':
-                moveAlongCircle(-5);
-                break;
-            case KEY_PRESS_SPACE:
-                if (m_sprayCharges > 0) {
-                    m_sprayCharges--;
-                    getStudentWorld()->addActor(
-                        new Spray(
-                            getX() + SPRITE_WIDTH * cos(getDirection() * _RAD_CONST),
-                            getY() + SPRITE_WIDTH * sin(getDirection() * _RAD_CONST),
-                            getStudentWorld(),
-                            getDirection()));
-                    getStudentWorld()->playSound(SOUND_PLAYER_SPRAY);
-                }
-                break;
-            case KEY_PRESS_ENTER:
-                if (m_flameCharges > 0) {
-                    m_flameCharges--;
-                    int tempDir = getDirection();
-                    for (auto i = 0; i < 16; i++) {
-                        getStudentWorld()->addActor(
-                            new Flame(
-                                getX() + SPRITE_WIDTH * cos((tempDir + (22.0 * i)) * _RAD_CONST),
-                                getY() + SPRITE_WIDTH * sin((tempDir + (22.0 * i)) * _RAD_CONST),
-                                getStudentWorld(),
-                                tempDir + (22.0 * i)));
-                        getStudentWorld()->playSound(SOUND_PLAYER_FIRE);
-                    }
-                }
-                break;
-        }
-    } else if (m_sprayCharges < 20)
-        m_sprayCharges++;
-}
-
-void Socrates::moveAlongCircle(int theta) {
-    int currentAngle = 180 + getDirection();
-    double newX      = 128 + (VIEW_RADIUS)*cos((currentAngle + theta) * (_PI / 180));
-    double newY      = 128 + (VIEW_RADIUS)*sin((currentAngle + theta) * (_PI / 180));
-    moveTo(newX, newY);
-    setDirection(getDirection() + theta);
-    return;
-}
-
-void Socrates::onHurt() {
-    cerr << "PLAY SOUND_PLAYER_HURT" << endl;
-    getStudentWorld()->playSound(SOUND_PLAYER_HURT);
-}
-
-void Socrates::onDeath() {
-    cerr << "PLAY SOUND_PLAYER_DIE" << endl;
-    getStudentWorld()->playSound(SOUND_PLAYER_DIE);
 }
 
 // `7MM"""Yb. `7MMF'`7MM"""Mq. MMP""MM""YMM
@@ -165,13 +79,8 @@ Dirt::Dirt(double startX, double startY, StudentWorld* world)
     : Actor(IID_DIRT, startX, startY, world, 0, 1, 1, true) {
 }
 
-Dirt::~Dirt() {
-}
-
 void Dirt::doSomething() {
-    int aaaa = 12;
-    int b    = 23;
-    int ccc  = 23;
+
 }
 
 // `7MM"""Mq.`7MM"""Mq.   .g8""8q.     `7MMF'`7MM"""YMM    .g8"""bgd MMP""MM""YMM `7MMF'`7MMF'      `7MM"""YMM
@@ -186,9 +95,6 @@ Projectile::Projectile(int imageID, double startX, double startY, StudentWorld* 
     : Actor(imageID, startX, startY, world, dir, 1, 1, true), m_travelTime(travelTime) {
 }
 
-Projectile::~Projectile() {
-}
-
 void Projectile::doSomething() {
     if (!isAlive())
         return;
@@ -199,65 +105,25 @@ void Projectile::doSomething() {
     moveForward(SPRITE_RADIUS * 2);
     m_travelTime -= SPRITE_RADIUS * 2;
     if (m_travelTime < 0) {
-        Actor::setAliveStatus(false);
+        setAliveStatus(false);
         return;
     }
 }
-
-// `7MM"""YMM `7MMF'            db      `7MMM.     ,MMF'`7MM"""YMM
-//   MM    `7   MM             ;MM:       MMMb    dPMM    MM    `7
-//   MM   d     MM            ,V^MM.      M YM   ,M MM    MM   d
-//   MM""MM     MM           ,M  `MM      M  Mb  M' MM    MMmmMM
-//   MM   Y     MM      ,    AbmmmqMA     M  YM.P'  MM    MM   Y  ,
-//   MM         MM     ,M   A'     VML    M  `YM'   MM    MM     ,M
-// .JMML.     .JMMmmmmMMM .AMA.   .AMMA..JML. `'  .JMML..JMMmmmmMMM
 
 Flame::Flame(double startX, double startY, StudentWorld* world, Direction dir)
     : Projectile(IID_FLAME, startX, startY, world, dir, 32) {
 }
 
-Flame::~Flame() {
-}
-
 bool Flame::checkHit() {
-    return getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS * 2, this, true, 5);
+    return getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS * 2, this, true, 5);       // hitCheck with a potential damage of 5 
 }
-
-//  .M"""bgd `7MM"""Mq.`7MM"""Mq.        db   `YMM'   `MM'
-// ,MI    "Y   MM   `MM. MM   `MM.      ;MM:    VMA   ,V
-// `MMb.       MM   ,M9  MM   ,M9      ,V^MM.    VMA ,V
-//   `YMMNq.   MMmmdM9   MMmmdM9      ,M  `MM     VMMP
-// .     `MM   MM        MM  YM.      AbmmmqMA     MM
-// Mb     dM   MM        MM   `Mb.   A'     VML    MM
-// P"Ybmmd"  .JMML.    .JMML. .JMM..AMA.   .AMMA..JMML.
 
 Spray::Spray(double startX, double startY, StudentWorld* world, Direction dir)
     : Projectile(IID_SPRAY, startX, startY, world, dir, 112) {
 }
 
-Spray::~Spray() {
-}
-
 bool Spray::checkHit() {
-    return getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS * 2, this, true, 2);
-}
-
-// `7MM"""Mq.`7MM"""Mq.   .g8""8q. `7MM"""Mq.  .M"""bgd
-//   MM   `MM. MM   `MM..dP'    `YM. MM   `MM.,MI    "Y
-//   MM   ,M9  MM   ,M9 dM'      `MM MM   ,M9 `MMb.
-//   MMmmdM9   MMmmdM9  MM        MM MMmmdM9    `YMMNq.
-//   MM        MM  YM.  MM.      ,MP MM       .     `MM
-//   MM        MM   `Mb.`Mb.    ,dP' MM       Mb     dM
-// .JMML.    .JMML. .JMM. `"bmmd"' .JMML.     P"Ybmmd"
-
-Prop::Prop(int imageID, double startX, double startY, StudentWorld* world, Direction dir)
-    : Actor(imageID, startX, startY, world, dir, 1, 1, true) {
-}
-
-Prop::~Prop() {
-}
-
-void Prop::doSomething() {
+    return getStudentWorld()->hitCheck(getX(), getY(), SPRITE_RADIUS * 2, this, true, 2);       // hitCheck with a potential damage of 2
 }
 
 // `7MM"""YMM   .g8""8q.     .g8""8q. `7MM"""Yb.
@@ -269,10 +135,7 @@ void Prop::doSomething() {
 // .JMML.       `"bmmd"'     `"bmmd"' .JMMmmmdP'
 
 Food::Food(double startX, double startY, StudentWorld* world)
-    : Prop(IID_FOOD, startX, startY, world, 90) {
-}
-
-Food::~Food() {
+    : Actor(IID_FOOD, startX, startY, world, 90, 1, 1, true) {
 }
 
 // `7MM"""Mq.`7MMF'MMP""MM""YMM
@@ -284,7 +147,7 @@ Food::~Food() {
 // .JMML.    .JMML.   .JMML.
 
 Pit::Pit(double startX, double startY, StudentWorld* world)
-    : Prop(IID_PIT, startX, startY, world, 0) {
+    : Actor(IID_PIT, startX, startY, world, 0, 1, 1, true) {
     m_inventory[RegS] = 5;  // 5
     m_inventory[AgrS] = 3;  // 3
     m_inventory[ECol] = 2;  // 2
@@ -296,7 +159,7 @@ Pit::~Pit() {
 }
 
 void Pit::doSomething() {
-    if (m_inventory[RegS] + m_inventory[AgrS] + m_inventory[ECol] == 0) {
+    if (m_inventory[RegS] + m_inventory[AgrS] + m_inventory[ECol] == 0) {       // If inventory is empty, return false
         setAliveStatus(false);
     }
     if (randInt(1, 50) == 1) {
@@ -327,18 +190,15 @@ Goodie::Goodie(int imageID, double startX, double startY, StudentWorld* world)
     : Actor(imageID, startX, startY, world, 0, 1, 1, true), m_lifeTime(max(randInt(0, 300 - 10 * world->getLevel() - 1), 50)) {
 }
 
-Goodie::~Goodie() {
-}
-
 void Goodie::doSomething() {
     if (!isAlive())
         return;
-    if (getStudentWorld()->distToSoc(getX(), getY()) <= SPRITE_WIDTH) {
+    if (getStudentWorld()->distToSoc(getX(), getY()) <= SPRITE_WIDTH) {     // If we are within radius of Socrates,
         onPickup();
         setAliveStatus(false);
         return;
     }
-    if (--m_lifeTime <= 0)
+    if (--m_lifeTime <= 0)      // Decrement m_lifeTime and compare it
         setAliveStatus(false);
 }
 
@@ -348,14 +208,10 @@ HealthGoodie::HealthGoodie(double startX, double startY, StudentWorld* world)
     : Goodie(IID_RESTORE_HEALTH_GOODIE, startX, startY, world) {
 }
 
-HealthGoodie::~HealthGoodie() {
-}
-
 void HealthGoodie::onPickup() {
-    getStudentWorld()->increaseScore(250);
     getStudentWorld()->playSound(SOUND_GOT_GOODIE);
+    getStudentWorld()->increaseScore(250);
     getStudentWorld()->healSoc();
-    setAliveStatus(false);
 }
 
 // Flame Thrower Goodie
@@ -364,14 +220,10 @@ FlameThrowerGoodie::FlameThrowerGoodie(double startX, double startY, StudentWorl
     : Goodie(IID_FLAME_THROWER_GOODIE, startX, startY, world) {
 }
 
-FlameThrowerGoodie::~FlameThrowerGoodie() {
-}
-
 void FlameThrowerGoodie::onPickup() {
-    getStudentWorld()->increaseScore(300);
     getStudentWorld()->playSound(SOUND_GOT_GOODIE);
+    getStudentWorld()->increaseScore(300);
     getStudentWorld()->addCharges(5);
-    setAliveStatus(false);
 }
 
 //Extra Life Goodie
@@ -380,14 +232,10 @@ ExtraLifeGoodie::ExtraLifeGoodie(double startX, double startY, StudentWorld* wor
     : Goodie(IID_EXTRA_LIFE_GOODIE, startX, startY, world) {
 }
 
-ExtraLifeGoodie::~ExtraLifeGoodie() {
-}
-
 void ExtraLifeGoodie::onPickup() {
-    getStudentWorld()->increaseScore(500);
     getStudentWorld()->playSound(SOUND_GOT_GOODIE);
+    getStudentWorld()->increaseScore(500);
     getStudentWorld()->incLives();
-    setAliveStatus(false);
 }
 
 //
@@ -396,13 +244,89 @@ Fungus::Fungus(double startX, double startY, StudentWorld* world)
     : Goodie(IID_FUNGUS, startX, startY, world) {
 }
 
-Fungus::~Fungus() {
-}
-
 void Fungus::onPickup() {
     getStudentWorld()->increaseScore(-50);
     getStudentWorld()->hurtSoc(20);
-    setAliveStatus(false);
+}
+
+//  .M"""bgd   .g8""8q.     .g8"""bgd `7MM"""Mq.        db   MMP""MM""YMM `7MM"""YMM   .M"""bgd
+// ,MI    "Y .dP'    `YM. .dP'     `M   MM   `MM.      ;MM:  P'   MM   `7   MM    `7  ,MI    "Y
+// `MMb.     dM'      `MM dM'       `   MM   ,M9      ,V^MM.      MM        MM   d    `MMb.
+//   `YMMNq. MM        MM MM            MMmmdM9      ,M  `MM      MM        MMmmMM      `YMMNq.
+// .     `MM MM.      ,MP MM.           MM  YM.      AbmmmqMA     MM        MM   Y  , .     `MM
+// Mb     dM `Mb.    ,dP' `Mb.     ,'   MM   `Mb.   A'     VML    MM        MM     ,M Mb     dM
+// P"Ybmmd"    `"bmmd"'     `"bmmmd'  .JMML. .JMM..AMA.   .AMMA..JMML.    .JMMmmmmMMM P"Ybmmd"
+
+Socrates::Socrates(StudentWorld* world)
+    : Diva(IID_PLAYER, 0, VIEW_HEIGHT / 2, world, 0, 100), m_sprayCharges(20), m_flameCharges(5) {
+}
+
+void Socrates::doSomething() {
+    // Check if Socrates is alive:
+    if (!isAlive())
+        return;
+
+    // Get keypress:
+    int keyPress = 0;
+    if (getStudentWorld()->getKey(keyPress)) {
+        switch (keyPress) {
+            case KEY_PRESS_LEFT:
+            case 'a':
+                moveAlongCircle(5);
+                break;
+            case KEY_PRESS_RIGHT:
+            case 'd':
+                moveAlongCircle(-5);
+                break;
+            case KEY_PRESS_SPACE:
+                if (m_sprayCharges > 0) {       // If we can spray, add Spray to the StudentWorld
+                    m_sprayCharges--;
+                    getStudentWorld()->addActor(
+                        new Spray(
+                            getX() + SPRITE_WIDTH * cos(getDirection() * _RAD_CONST),
+                            getY() + SPRITE_WIDTH * sin(getDirection() * _RAD_CONST),
+                            getStudentWorld(),
+                            getDirection()));
+                    getStudentWorld()->playSound(SOUND_PLAYER_SPRAY);
+                }
+                break;
+            case KEY_PRESS_ENTER:
+                if (m_flameCharges > 0) {       // If we can flamethrower, add 16 flames to the StudentWorld at intervals of 22 degrees
+                    m_flameCharges--;
+                    int tempDir = getDirection();
+                    for (auto i = 0; i < 16; i++) {
+                        getStudentWorld()->addActor(
+                            new Flame(
+                                getX() + SPRITE_WIDTH * cos((tempDir + (22.0 * i)) * _RAD_CONST),
+                                getY() + SPRITE_WIDTH * sin((tempDir + (22.0 * i)) * _RAD_CONST),
+                                getStudentWorld(),
+                                tempDir + (22.0 * i)));
+                        getStudentWorld()->playSound(SOUND_PLAYER_FIRE);
+                    }
+                }
+                break;
+        }
+    } else if (m_sprayCharges < 20)
+        m_sprayCharges++;
+}
+
+void Socrates::moveAlongCircle(int theta) {
+    int currentAngle = 180 + getDirection();        // Trig to figure out new x,y
+    double newX      = 128 + (VIEW_RADIUS)*cos((currentAngle + theta) * (_PI / 180));
+    double newY      = 128 + (VIEW_RADIUS)*sin((currentAngle + theta) * (_PI / 180));
+    moveTo(newX, newY);
+    setDirection(getDirection() + theta);
+    return;
+}
+
+void Socrates::onHurt() {
+    cerr << "PLAY SOUND_PLAYER_HURT" << endl;
+    getStudentWorld()->playSound(SOUND_PLAYER_HURT);
+}
+
+void Socrates::onDeath() {
+    cerr << "PLAY SOUND_PLAYER_DIE" << endl;
+    getStudentWorld()->playSound(SOUND_PLAYER_DIE);
 }
 
 // `7MM"""Yp,      db       .g8"""bgd MMP""MM""YMM `7MM"""YMM  `7MM"""Mq.  `7MMF'      db
@@ -425,31 +349,35 @@ Bacteria::~Bacteria() {
 bool Bacteria::tryMove(Direction dir, int units) {
     setDirection(dir);
     double newX = 0, newY = 0;
-    getPositionInThisDirection(dir, units, newX, newY);
+    getPositionInThisDirection(getDirection(), units, newX, newY);
     if (!getStudentWorld()->hitCheck(newX, newY, SPRITE_WIDTH / 2, this)) {
         if (sqrt(pow(double(newX - VIEW_WIDTH / 2.0), 2.0) + pow(double(newY - VIEW_HEIGHT / 2.0), 2.0)) < VIEW_RADIUS) {
-            moveAngle(dir, units);
+            moveAngle(getDirection(), units);
             return true;
         }
     }
     return false;
 }
 
+bool Bacteria::aggressiveBehavior() {
+    return false;
+}
+
 void Bacteria::doSomething() {
     if (!isAlive())
         return;
-    bool mode = aggr();
+    bool mode = aggressiveBehavior();       // If we have aggressive behavior, try it, if we aggressed, we will skip move() later on
     if (getStudentWorld()->distToSoc(getX(), getY()) <= SPRITE_WIDTH)
-        onOverlap();
+        onOverlap();        // If we overlap with Socrates, call onOverlap()
     else {
         double newX = getX();
         double newY = getY();
         if (m_nFoodEaten >= 3) {
             newX += ((getX() < VIEW_WIDTH / 2) ? 1 : -1) * SPRITE_RADIUS;
             newY += ((getY() < VIEW_HEIGHT / 2) ? 1 : -1) * SPRITE_RADIUS;
-            spawnNew(newX, newY);
+            spawnNew(newX, newY);       // Spawn new Bacteria at newx, newY if we've eaten enough food
             m_nFoodEaten = 0;
-        } else if (getStudentWorld()->findClosestFood(newX, newY, SPRITE_WIDTH, this, true)) {
+        } else if (getStudentWorld()->findClosestFood(newX, newY, SPRITE_WIDTH, this, true)) {      // If the closest food is within SPRITE_WIDTH, we will eat it and destroy it
             m_nFoodEaten++;
         }
     }
@@ -459,8 +387,9 @@ void Bacteria::doSomething() {
 
 void Bacteria::onDeath() {
     getStudentWorld()->increaseScore(100);
+    uniqueOnDeath();        // Each bacteria has unique death sounds/behavior
     if (randInt(1, 2) == 1)
-        getStudentWorld()->addActor(new Food(getX(), getY(), getStudentWorld()));
+        getStudentWorld()->addActor(new Food(getX(), getY(), getStudentWorld()));   // Potentially spawn new food
 }
 
 //  .M"""bgd      db      `7MMF'      `7MMM.     ,MMF' .g8""8q. `7MN.   `7MF'`7MM"""YMM  `7MMF'      `7MMF'            db
@@ -473,9 +402,6 @@ void Bacteria::onDeath() {
 
 Salmonella::Salmonella(double startX, double startY, StudentWorld* world, int health)
     : Bacteria(IID_SALMONELLA, startX, startY, world, health), m_movementPlanDistance(0) {
-}
-
-Salmonella::~Salmonella() {
 }
 
 void Salmonella::onHurt() {
@@ -499,9 +425,9 @@ void Salmonella::move() {
         }
     } else {
         double newX = getX(), newY = getY();
-        if (getStudentWorld()->findClosestFood(newX, newY, 128, this)) {
-            Direction newDir = getStudentWorld()->directionTo(getX(), getY(), newX, newY);
-            if (!tryMove(newDir, 3)) {
+        if (getStudentWorld()->findClosestFood(newX, newY, 128, this)) {        // If food is close,
+            Direction newDir = getStudentWorld()->directionTo(getX(), getY(), newX, newY);      // Get the direction to the food,
+            if (!tryMove(newDir, 3)) {      // If we can't move, then set a random direction and reset m_movementPlanDistance
                 setDirection(randInt(0, 359));
                 m_movementPlanDistance = 10;
             }
@@ -512,8 +438,8 @@ void Salmonella::move() {
     }
 }
 
-bool Salmonella::aggr() {
-    return false;
+bool Salmonella::aggressiveBehavior() {
+    return false;       // Regular Salmonella are not aggressive
 }
 
 void Salmonella::onOverlap() {
@@ -521,20 +447,16 @@ void Salmonella::onOverlap() {
 }
 
 void Salmonella::spawnNew(double x, double y) {
-    Actor* temp = new Salmonella(x, y, getStudentWorld());
-    getStudentWorld()->addActor(temp);
+    getStudentWorld()->addActor(new Salmonella(x, y, getStudentWorld()));
 }
 
 AggressiveSalmonella::AggressiveSalmonella(double x, double y, StudentWorld* world)
     : Salmonella(x, y, world, 10) {
 }
 
-AggressiveSalmonella::~AggressiveSalmonella() {
-}
-
-bool AggressiveSalmonella::aggr() {
+bool AggressiveSalmonella::aggressiveBehavior() {
     if (getStudentWorld()->distToSoc(getX(), getY()) <= 72) {
-        tryMove(getStudentWorld()->dirToSoc(getX(), getY()), 3);
+        tryMove(getStudentWorld()->dirToSoc(getX(), getY()), 3);        // Try to move towards Socrates, if we can't, do nothing
         return true;
     }
     return false;
@@ -552,15 +474,10 @@ EColi::EColi(double startX, double startY, StudentWorld* world)
     : Bacteria(IID_ECOLI, startX, startY, world, 5) {
 }
 
-EColi::~EColi() {
-}
-
 void EColi::move() {
     if (getStudentWorld()->distToSoc(getX(), getY()) <= 256) {
-        int theta = getStudentWorld()->dirToSoc(getX(), getY());
-        for (int i = 0; i < 10 && !tryMove(theta, 2); i++, theta += 10)
-            if (theta + 10 >= 360)
-                theta -= 360;
+        int theta = getStudentWorld()->dirToSoc(getX(), getY());        // Try to move towards Socrates, if we can't, do nothing
+        for (int i = 0; i < 10 && !tryMove(theta, 2); i++, theta += 10);    // 10 times: try to move in the direction theta by 2 units, if we can't, increase theta by 10, if we can, then we exit the loop.
     }
 }
 
